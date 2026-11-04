@@ -28,6 +28,8 @@ export const STORES: [name: string, aliases: string[]][] = [
   ["Mayorista 10", ["mayorista 10"]],
   ["Alvi", ["supermercado alvi", "alvi supermercados"]],
   ["OK Market", ["ok market"]],
+  // Local markets
+  ["Prolog F y V Limitada", ["prolog f y v limitada"]],
   // Pharmacies
   ["Cruz Verde", ["cruz verde"]],
   ["Salcobrand", ["salcobrand"]],
