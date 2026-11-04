@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { formatAmount, formatDate, formatRelative } from "@/lib/format";
-import { prepareImage } from "@/lib/prepare-image";
+import { loadOcrEngine, scanReceipt } from "@/lib/ocr/scan";
 import { cn } from "@/lib/utils";
 
 type Quota = {
@@ -80,6 +80,8 @@ export function ReceiptScanner() {
     setFile(next);
     setResult(null);
     setPreviewUrl(URL.createObjectURL(next));
+    // Start downloading the OCR engine while the user looks at the preview.
+    loadOcrEngine().catch(() => {});
   }
 
   function clearFile() {
@@ -94,10 +96,12 @@ export function ReceiptScanner() {
     setStatus("scanning");
     setResult(null);
     try {
-      const upload = await prepareImage(file);
-      const body = new FormData();
-      body.append("file", upload);
-      const res = await fetch("/api/scan", { method: "POST", body });
+      const fields = await scanReceipt(file);
+      const res = await fetch("/api/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fields),
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const reset =

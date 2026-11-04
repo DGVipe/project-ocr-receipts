@@ -134,7 +134,7 @@ export const getQuota = query({
 });
 
 /**
- * Reserves a scan slot before the image is sent to the OCR service.
+ * Reserves a scan slot before the OCR result is stored.
  * Convex mutations are serializable, so two simultaneous requests from the
  * same user cannot both pass the checks.
  */

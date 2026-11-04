@@ -12,11 +12,4 @@ export const serverEnv = {
   get convexServerSecret() {
     return required("CONVEX_SERVER_SECRET");
   },
-  /** Base URL of the pytesseract service, e.g. https://receipt-ocr.onrender.com */
-  get ocrServiceUrl() {
-    return required("OCR_SERVICE_URL").replace(/\/+$/, "");
-  },
-  get ocrApiKey() {
-    return required("OCR_API_KEY");
-  },
 };

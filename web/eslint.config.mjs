@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "convex/_generated/**",
+    // Minified Tesseract.js assets copied from node_modules.
+    "public/tesseract/**",
   ]),
 ]);
 

@@ -32,6 +32,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Tesseract.js assets, copied from node_modules by scripts/copy-tesseract-assets.mjs
+/public/tesseract/
+
 # vercel
 .vercel
 
