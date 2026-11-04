@@ -27,7 +27,7 @@ TESSERACT_CONFIG = "--oem 1 --psm 4"
 
 # Receipt text OCRs best at roughly 30 px x-height. Phone photos downsized by the
 # browser (max 2400 px) are well below that, so scale the long side to this.
-TARGET_LONG_SIDE = 3200
+TARGET_LONG_SIDE = int(os.environ.get("OCR_TARGET_LONG_SIDE", "3200"))
 MAX_UPSCALE = 3.0
 # Don't start another pass with less time than this left.
 MIN_PASS_SECONDS = 3
