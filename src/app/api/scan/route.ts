@@ -35,14 +35,14 @@ export async function POST(request: Request) {
   const origin = request.headers.get("origin");
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   if (origin && host && new URL(origin).host !== host) {
-    return error("Cross-origin requests are not allowed.", 403);
+    return error("Cross-origin requests are not allowed.", 403, { code: "cross_origin" });
   }
 
   let result: ReturnType<typeof readResult>;
   try {
     result = readResult(await request.json());
   } catch {
-    return error("Expected a JSON body.", 400);
+    return error("Expected a JSON body.", 400, { code: "bad_body" });
   }
 
   const { userKey, ipKey } = await getIdentity();
@@ -64,16 +64,17 @@ export async function POST(request: Request) {
       return error(
         "No receipt details were found. Try a sharper, well-lit photo with the receipt filling the frame.",
         422,
+        { code: "no_details" },
       );
     }
 
     const saved = await fetchMutation(api.scans.complete, { secret, scanId, userKey, ...result });
-    if (!saved.ok) return error(saved.message, 403);
+    if (!saved.ok) return error(saved.message, 403, { code: "storage_full" });
 
     return Response.json({ receipt: { id: saved.receiptId, ...result } });
   } catch (err) {
     await fetchMutation(api.scans.fail, { secret, scanId, userKey }).catch(() => {});
     console.error("Scan failed", err);
-    return error("Something went wrong while saving the receipt.", 500);
+    return error("Something went wrong while saving the receipt.", 500, { code: "save_failed" });
   }
 }

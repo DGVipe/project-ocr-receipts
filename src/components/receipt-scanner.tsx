@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { formatAmount, formatDate, formatRelative } from "@/lib/format";
 import { loadOcrEngine, scanReceipt } from "@/lib/ocr/scan";
+import { useI18n, type Messages } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Quota = {
@@ -42,7 +43,14 @@ async function fetchQuota(): Promise<Quota | null> {
   }
 }
 
+function serverMessage(t: Messages, data: { code?: string; error?: string }): string | undefined {
+  const m = data.code ? t[data.code as keyof Messages] : undefined;
+  return typeof m === "string" ? m : data.error;
+}
+
 export function ReceiptScanner() {
+  const { t, locale } = useI18n();
+  const relative = (ms: number) => formatRelative(ms, t.hour, t.minute);
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -74,7 +82,7 @@ export function ReceiptScanner() {
   function selectFile(next: File | undefined) {
     if (!next) return;
     if (!next.type.startsWith("image/") && !/\.(heic|heif)$/i.test(next.name)) {
-      toast.error("Please choose an image file.");
+      toast.error(t.chooseImage);
       return;
     }
     setFile(next);
@@ -105,14 +113,14 @@ export function ReceiptScanner() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const reset =
-          typeof data.resetAt === "number" ? ` You can scan again in ${formatRelative(data.resetAt)}.` : "";
-        toast.error((data.error ?? "Scan failed.") + reset);
+          typeof data.resetAt === "number" ? t.canScanAgain(relative(data.resetAt)) : "";
+        toast.error((serverMessage(t, data) ?? t.scanFailed) + reset);
         return;
       }
       setResult(data.receipt);
-      toast.success("Receipt scanned and saved.");
+      toast.success(t.scanSaved);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Scan failed.");
+      toast.error(err instanceof Error ? ocrMessage(t, err.message) : t.scanFailed);
     } finally {
       setStatus("idle");
       void refreshQuota();
@@ -125,19 +133,17 @@ export function ReceiptScanner() {
     (quota.userReceipts >= quota.maxUserReceipts || quota.totalReceipts >= quota.maxTotalReceipts);
   const blockedReason = storageFull
     ? quota!.totalReceipts >= quota!.maxTotalReceipts
-      ? "The receipt database is full."
-      : `You've stored the maximum of ${quota!.maxUserReceipts} receipts.`
+      ? t.dbFull
+      : t.userMax(quota!.maxUserReceipts)
     : outOfScans
-      ? `Scan limit reached.${quota!.resetAt ? ` Try again in ${formatRelative(quota!.resetAt)}.` : ""}`
+      ? `${t.scanLimit}${quota!.resetAt ? t.tryAgainIn(relative(quota!.resetAt)) : ""}`
       : null;
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Scan a receipt</CardTitle>
-        <CardDescription>
-          Upload a photo of a purchase receipt. We&apos;ll read the store name, date and total and save them.
-        </CardDescription>
+        <CardTitle>{t.scanTitle}</CardTitle>
+        <CardDescription>{t.scanDescription}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         <input
@@ -152,14 +158,14 @@ export function ReceiptScanner() {
         {previewUrl ? (
           <div className="relative overflow-hidden rounded-lg border bg-muted/40">
             {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview */}
-            <img src={previewUrl} alt="Selected receipt" className="mx-auto max-h-80 object-contain" />
+            <img src={previewUrl} alt={t.selectedReceipt} className="mx-auto max-h-80 object-contain" />
             <Button
               variant="secondary"
               size="icon-sm"
               className="absolute top-2 right-2"
               onClick={clearFile}
               disabled={status === "scanning"}
-              aria-label="Remove image"
+              aria-label={t.removeImage}
             >
               <XIcon />
             </Button>
@@ -184,8 +190,8 @@ export function ReceiptScanner() {
           >
             <ImageUpIcon className="size-10 text-muted-foreground" />
             <div>
-              <p className="font-medium">Drop a receipt image here, or click to browse</p>
-              <p className="text-sm text-muted-foreground">JPEG, PNG, WebP or HEIC photos</p>
+              <p className="font-medium">{t.dropHere}</p>
+              <p className="text-sm text-muted-foreground">{t.formats}</p>
             </div>
           </label>
         )}
@@ -198,11 +204,11 @@ export function ReceiptScanner() {
           >
             {status === "scanning" ? (
               <>
-                <Loader2Icon className="animate-spin" /> Scanning…
+                <Loader2Icon className="animate-spin" /> {t.scanning}
               </>
             ) : (
               <>
-                <ReceiptIcon /> Scan receipt
+                <ReceiptIcon /> {t.scanReceipt}
               </>
             )}
           </Button>
@@ -211,12 +217,12 @@ export function ReceiptScanner() {
 
         {result && (
           <div className="grid gap-3 rounded-lg border bg-muted/30 p-4 sm:grid-cols-3">
-            <Field icon={<StoreIcon />} label="Store" value={result.storeName ?? "Not found"} />
-            <Field icon={<CalendarIcon />} label="Date" value={formatDate(result.purchaseDate)} />
+            <Field icon={<StoreIcon />} label={t.store} value={result.storeName ?? t.notFound} />
+            <Field icon={<CalendarIcon />} label={t.date} value={formatDate(result.purchaseDate, locale)} />
             <Field
               icon={<ReceiptIcon />}
-              label="Total"
-              value={formatAmount(result.totalAmount, result.currency)}
+              label={t.total}
+              value={formatAmount(result.totalAmount, result.currency, locale)}
             />
           </div>
         )}
@@ -224,13 +230,13 @@ export function ReceiptScanner() {
         {quota && (
           <div className="flex flex-col gap-3 border-t pt-4 text-sm">
             <Usage
-              label={`Scans left this ${quota.windowMs >= 3_600_000 ? "hour" : "period"}`}
+              label={quota.windowMs >= 3_600_000 ? t.scansLeftHour : t.scansLeftPeriod}
               used={quota.scansPerWindow - quota.scansRemaining}
               max={quota.scansPerWindow}
               display={`${quota.scansRemaining} / ${quota.scansPerWindow}`}
             />
             <Usage
-              label="Your stored receipts"
+              label={t.yourReceipts}
               used={quota.userReceipts}
               max={quota.maxUserReceipts}
               display={`${quota.userReceipts} / ${quota.maxUserReceipts}`}
@@ -266,4 +272,14 @@ function Usage({ label, used, max, display }: { label: string; used: number; max
       <Progress value={Math.min(100, (used / max) * 100)} />
     </div>
   );
+}
+
+/** The OCR layer throws fixed English messages; map them to the active language. */
+function ocrMessage(t: Messages, message: string): string {
+  const known: Record<string, string> = {
+    "The OCR engine couldn't be loaded. Check your connection and try again.": t.ocrLoad,
+    "This image format isn't supported. Try a JPEG or PNG photo.": t.ocrFormat,
+    "Your browser can't process images here.": t.ocrBrowser,
+  };
+  return known[message] ?? message;
 }

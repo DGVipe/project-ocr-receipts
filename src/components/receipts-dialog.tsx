@@ -27,15 +27,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatAmount, formatDate, formatTimestamp } from "@/lib/format";
+import { useI18n } from "@/lib/i18n";
 
 export function ReceiptsDialog() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const summary = useQuery(api.receipts.summary);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="outline" />}>
-        <DatabaseIcon /> View all receipts
+        <DatabaseIcon /> {t.viewAll}
         {summary && (
           <Badge variant="secondary" className="ml-1 tabular-nums">
             {summary.totalReceipts}
@@ -44,15 +46,10 @@ export function ReceiptsDialog() {
       </DialogTrigger>
       <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>All scanned receipts</DialogTitle>
+          <DialogTitle>{t.dialogTitle}</DialogTitle>
           <DialogDescription>
-            Every receipt collected by all users, newest first.
-            {summary && (
-              <>
-                {" "}
-                Storage: {summary.totalReceipts} / {summary.maxTotalReceipts} receipts.
-              </>
-            )}
+            {t.dialogDescription}
+            {summary && t.storage(summary.totalReceipts, summary.maxTotalReceipts)}
           </DialogDescription>
         </DialogHeader>
         {/* Only subscribe while the modal is open. */}
@@ -63,6 +60,7 @@ export function ReceiptsDialog() {
 }
 
 function ReceiptsTable() {
+  const { t, locale } = useI18n();
   const { results, status, loadMore } = usePaginatedQuery(
     api.receipts.list,
     {},
@@ -94,7 +92,7 @@ function ReceiptsTable() {
   if (results.length === 0) {
     return (
       <p className="py-12 text-center text-muted-foreground">
-        No receipts yet. Scan one to get started.
+        {t.noReceipts}
       </p>
     );
   }
@@ -105,24 +103,24 @@ function ReceiptsTable() {
       <Table containerClassName="overflow-visible">
         <TableHeader className="sticky top-0 z-10 bg-popover">
           <TableRow>
-            <TableHead>Store</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-            <TableHead className="hidden sm:table-cell">Scanned</TableHead>
+            <TableHead>{t.store}</TableHead>
+            <TableHead>{t.date}</TableHead>
+            <TableHead className="text-right">{t.total}</TableHead>
+            <TableHead className="hidden sm:table-cell">{t.scanned}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {results.map((r) => (
             <TableRow key={r._id}>
               <TableCell className="max-w-48 truncate font-medium" title={r.storeName ?? undefined}>
-                {r.storeName ?? <span className="text-muted-foreground">Unknown</span>}
+                {r.storeName ?? <span className="text-muted-foreground">{t.unknown}</span>}
               </TableCell>
-              <TableCell>{formatDate(r.purchaseDate)}</TableCell>
+              <TableCell>{formatDate(r.purchaseDate, locale)}</TableCell>
               <TableCell className="text-right tabular-nums">
-                {formatAmount(r.totalAmount, r.currency)}
+                {formatAmount(r.totalAmount, r.currency, locale)}
               </TableCell>
               <TableCell className="hidden text-muted-foreground sm:table-cell">
-                {formatTimestamp(r._creationTime)}
+                {formatTimestamp(r._creationTime, locale)}
               </TableCell>
             </TableRow>
           ))}
@@ -132,10 +130,10 @@ function ReceiptsTable() {
         {status === "LoadingMore" && <Loader2Icon className="size-4 animate-spin" />}
         {status === "CanLoadMore" && (
           <Button variant="ghost" size="sm" onClick={() => loadMore(LIST_PAGE_SIZE)}>
-            Load more
+            {t.loadMore}
           </Button>
         )}
-        {status === "Exhausted" && <span>{results.length} receipts — end of list</span>}
+        {status === "Exhausted" && <span>{t.endOfList(results.length)}</span>}
       </div>
     </ScrollArea>
   );

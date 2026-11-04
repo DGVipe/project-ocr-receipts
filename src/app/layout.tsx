@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
+import { ThemeProvider } from "@/components/theme-provider";
+import { I18nProvider } from "@/lib/i18n";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -23,11 +25,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ConvexClientProvider>{children}</ConvexClientProvider>
-        <Toaster richColors position="top-center" />
+        <ThemeProvider>
+          <I18nProvider>
+            <ConvexClientProvider>{children}</ConvexClientProvider>
+            <Toaster richColors position="top-center" />
+          </I18nProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
