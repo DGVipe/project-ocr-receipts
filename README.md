@@ -9,13 +9,13 @@ Browser: photo ──▶ Tesseract.js (WebAssembly) ──▶ parser ──store
                                     modal reads receipts in real time ──▶ Convex (receipts, rate-limit events)
 ```
 
-Everything lives in `web/`: the Next.js 16 app (App Router, Tailwind v4, shadcn/ui) and the `convex/` backend.
+It's a single Next.js 16 app (App Router, Tailwind v4, shadcn/ui), with its Convex backend in `convex/`.
 
-The OCR runs on the user's device with [Tesseract.js](https://github.com/naptha/tesseract.js), so there is no OCR server to host. The Tesseract.js worker, its WebAssembly core and the English + Spanish language data (about 9 MB on first use, then cached by the browser) are copied from `node_modules` into `public/tesseract/` by [`scripts/copy-tesseract-assets.mjs`](web/scripts/copy-tesseract-assets.mjs) before `npm run dev` and `npm run build`. They're served from the app's own domain, not a CDN. Only the three extracted fields are sent to the server.
+The OCR runs on the user's device with [Tesseract.js](https://github.com/naptha/tesseract.js), so there is no OCR server to host. The Tesseract.js worker, its WebAssembly core and the English + Spanish language data (about 9 MB on first use, then cached by the browser) are copied from `node_modules` into `public/tesseract/` by [`scripts/copy-tesseract-assets.mjs`](scripts/copy-tesseract-assets.mjs) before `npm run dev` and `npm run build`. They're served from the app's own domain, not a CDN. Only the three extracted fields are sent to the server.
 
 ## Limits
 
-All limits live in [`web/convex/limits.ts`](web/convex/limits.ts):
+All limits live in [`convex/limits.ts`](convex/limits.ts):
 
 | Limit                         | Default | Purpose                                         |
 | ----------------------------- | ------- | ----------------------------------------------- |
@@ -34,13 +34,12 @@ Write mutations require `CONVEX_SERVER_SECRET`, so only the Next.js server can c
 Prerequisites: Node 22.18+ (the parser tests run on Node's built-in TypeScript support).
 
 ```bash
-cd web
 npm install
 npx convex dev            # log in and create a project; writes .env.local; keep it running
 npx convex env set CONVEX_SERVER_SECRET "$(openssl rand -hex 32)"
 ```
 
-Add the following to `web/.env.local` (see `.env.example`). `CONVEX_SERVER_SECRET` must be the same value you just set in Convex.
+Add the following to `.env.local` (see `.env.example`). `CONVEX_SERVER_SECRET` must be the same value you just set in Convex.
 
 ```
 CONVEX_SERVER_SECRET=<same value>
@@ -50,9 +49,9 @@ Then run `npm run dev` and open http://localhost:3000. Run the parser tests with
 
 ## Deployment
 
-**Convex.** Run `npx convex deploy` from `web/` (or let Vercel do it, below). Then set the secret on the production deployment: `npx convex env set CONVEX_SERVER_SECRET <value> --prod`.
+**Convex.** Run `npx convex deploy` (or let Vercel do it, below). Then set the secret on the production deployment: `npx convex env set CONVEX_SERVER_SECRET <value> --prod`.
 
-**Vercel.** Import the repo and set **Root Directory** to `web`. Then:
+**Vercel.** Import the repo, keeping the default Root Directory (the repo root). Then:
 
 - Build command: `npx convex deploy --cmd 'npm run build'`
 - Environment variables:
@@ -62,12 +61,12 @@ Then run `npm run dev` and open http://localhost:3000. Run the parser tests with
 
 ## OCR
 
-The OCR ([`web/src/lib/ocr/scan.ts`](web/src/lib/ocr/scan.ts)) upscales the photo, removes shadows ([`preprocess.ts`](web/src/lib/ocr/preprocess.ts)), and runs Tesseract on up to three differently preprocessed versions within a 30 s budget. It stops as soon as the total and date are confidently found. The parser ([`web/src/lib/ocr/parser.ts`](web/src/lib/ocr/parser.ts)) reads line by line:
+The OCR ([`src/lib/ocr/scan.ts`](src/lib/ocr/scan.ts)) upscales the photo, removes shadows ([`preprocess.ts`](src/lib/ocr/preprocess.ts)), and runs Tesseract on up to three differently preprocessed versions within a 30 s budget. It stops as soon as the total and date are confidently found. The parser ([`src/lib/ocr/parser.ts`](src/lib/ocr/parser.ts)) reads line by line:
 
 - **Total:** taken from lines containing "total". "Total Boleta" and "Total a pagar" outrank a plain "TOTAL", and Sub-Total, Total Neto/Afecto/Exento/IVA/Dcto and item-count lines are ignored. A card payment line (T.Debito, Transbank…) with the same amount, or an IVA line consistent with 19%, adds confidence. The passes vote, so a digit misread in one pass is outvoted.
 - **Date:** taken from lines containing "Fecha"/"Emisión"/"Date". SII stamp dates ("Resolución 80 del …") are ignored.
 - **Currency:** the receipt's language is detected from its words. Spanish gives `CLP` and English gives `USD`, unless `US$`/`CLP` is printed on it.
-- **Store:** only reported when the receipt matches a store in [`web/src/lib/ocr/stores.ts`](web/src/lib/ocr/stores.ts). Add a store there to recognize it.
+- **Store:** only reported when the receipt matches a store in [`src/lib/ocr/stores.ts`](src/lib/ocr/stores.ts). Add a store there to recognize it.
 
 Amounts like `1,234.56`, `1.234,56` and peso-style `$12.990` are all handled. Any field it isn't confident about comes back empty.
 

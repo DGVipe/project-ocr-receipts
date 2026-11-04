@@ -4,11 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Receipt scanner: users pick a receipt photo, OCR **in the browser** (Tesseract.js) extracts **store name, date, total**, and the result is stored in Convex. A modal lists every stored receipt with infinite scroll. Everything is in `web/`: Next.js 16 (App Router, Tailwind v4, shadcn/ui) deployed to Vercel, plus the Convex backend in `web/convex/`. There is no OCR server and no CDN. The Tesseract.js worker, its WASM core and the eng+spa traineddata are self-hosted from `public/tesseract/`.
+Receipt scanner: users pick a receipt photo, OCR **in the browser** (Tesseract.js) extracts **store name, date, total**, and the result is stored in Convex. A modal lists every stored receipt with infinite scroll. It's a single Next.js 16 app (App Router, Tailwind v4, shadcn/ui) at the repo root, deployed to Vercel, plus the Convex backend in `convex/`. There is no OCR server and no CDN. The Tesseract.js worker, its WASM core and the eng+spa traineddata are self-hosted from `public/tesseract/`.
 
 ## Commands
-
-Web (run from `web/`):
 
 ```bash
 npm run dev                # Next.js dev server (predev copies the Tesseract.js assets)
@@ -25,7 +23,7 @@ npx convex env set CONVEX_SERVER_SECRET <value>   # must equal CONVEX_SERVER_SEC
 
 ## Next.js version caveat
 
-`web/AGENTS.md`: this is Next.js 16 and APIs/conventions differ from older versions. Read the relevant guide in `web/node_modules/next/dist/docs/` before writing Next.js code. Cache Components is enabled, so don't add `export const runtime` to routes (Edge is deprecated).
+`AGENTS.md`: this is Next.js 16 and APIs/conventions differ from older versions. Read the relevant guide in `node_modules/next/dist/docs/` before writing Next.js code. Cache Components is enabled, so don't add `export const runtime` to routes (Edge is deprecated).
 
 shadcn here uses the **base-nova** style built on **Base UI**, not Radix. Use `render={<Button />}` instead of `asChild`. `cn` is imported from the `cn` package (shadcn's own; `src/lib/utils.ts` re-exports it). `Table` has a local `containerClassName` prop that lets sticky headers work inside `ScrollArea`.
 
@@ -60,4 +58,4 @@ shadcn here uses the **base-nova** style built on **Base UI**, not Radix. Use `r
 
 ## Environment
 
-`web/.env.local` (template in `web/.env.example`): `CONVEX_DEPLOYMENT`, `NEXT_PUBLIC_CONVEX_URL`, `CONVEX_SERVER_SECRET`, and optionally `NEXT_PUBLIC_DATE_ORDER`. Server env is read lazily via `src/lib/server/env.ts`, so `next build` works without secrets. On Vercel, set Root Directory to `web` and the build command to `npx convex deploy --cmd 'npm run build'`.
+`.env.local` (template in `.env.example`): `CONVEX_DEPLOYMENT`, `NEXT_PUBLIC_CONVEX_URL`, `CONVEX_SERVER_SECRET`, and optionally `NEXT_PUBLIC_DATE_ORDER`. Server env is read lazily via `src/lib/server/env.ts`, so `next build` works without secrets. On Vercel, keep Root Directory at the repo root and set the build command to `npx convex deploy --cmd 'npm run build'`.
