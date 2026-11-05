@@ -21,5 +21,5 @@ export const MAX_RECEIPTS_PER_USER = 25;
 /** Receipts the whole database may hold. New scans are rejected beyond this. */
 export const MAX_TOTAL_RECEIPTS = 1000;
 
-/** Page size for the "all receipts" modal. */
-export const LIST_PAGE_SIZE = 20;
+/** Rows per page in the receipts and stores modals. */
+export const LIST_PAGE_SIZE = 10;

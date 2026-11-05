@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Receipt scanner: users pick a receipt photo, OCR **in the browser** (Tesseract.js) extracts **store name, date, total**, and the result is stored in Convex. A modal lists every stored receipt with infinite scroll. It's a single Next.js 16 app (App Router, Tailwind v4, shadcn/ui) at the repo root, deployed to Vercel, plus the Convex backend in `convex/`. There is no OCR server and no CDN. The Tesseract.js worker, its WASM core and the eng+spa traineddata are self-hosted from `public/tesseract/`.
+Receipt scanner: users pick a receipt photo, OCR **in the browser** (Tesseract.js) extracts **store name, date, total**, and the result is stored in Convex. A modal lists every stored receipt with Previous/Next pagination, and a second modal lists the supported stores the same way (`src/components/page-controls.tsx` holds the shared `usePages` hook, which pages over Convex `usePaginatedQuery`). It's a single Next.js 16 app (App Router, Tailwind v4, shadcn/ui) at the repo root, deployed to Vercel, plus the Convex backend in `convex/`. There is no OCR server and no CDN. The Tesseract.js worker, its WASM core and the eng+spa traineddata are self-hosted from `public/tesseract/`.
 
 ## Commands
 
@@ -38,7 +38,7 @@ shadcn here uses the **base-nova** style built on **Base UI**, not Radix. Use `r
 
 ## Convex conventions
 
-- All tunable limits live in `convex/limits.ts`: per-user and per-IP scans per hourly window, 1 concurrent scan per user, per-user and global receipt caps, and the modal page size. Client code imports `LIST_PAGE_SIZE` from there too.
+- All tunable limits live in `convex/limits.ts`: per-user and per-IP scans per hourly window, 1 concurrent scan per user, per-user and global receipt caps, and the rows per page in the receipts and stores modals. Client code imports `LIST_PAGE_SIZE` from there too.
 - Write and identity-taking functions are public Convex functions guarded by a `secret` arg checked by `assertServer()` in `convex/lib.ts`. Only the Next.js server, which holds the secret, can call them. `receipts.list` and `receipts.summary` are public with no secret and must never return `userKey`.
 - The global receipt count is kept in the `stats` table (`name: "global"`) instead of counting rows; keep it in sync if you add deletion.
 - `crons.ts` runs `scans.pruneOldEvents` hourly to delete `scanEvents` older than the window.

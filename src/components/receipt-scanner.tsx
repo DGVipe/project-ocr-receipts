@@ -66,6 +66,7 @@ function scanError(message: string) {
   activeError = toast.error(message, {
     duration: Infinity,
     closeButton: true,
+    icon: null,
     className: "whitespace-pre-line",
   });
   document.addEventListener("click", dismissScanError, { capture: true, once: true });

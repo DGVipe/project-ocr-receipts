@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internalMutation, query } from "./_generated/server";
 
@@ -10,6 +11,21 @@ export const list = query({
   handler: async (ctx) => {
     const stores = await ctx.db.query("stores").collect();
     return stores.map(({ name, aliases }) => ({ name, aliases }));
+  },
+});
+
+/** Public, paginated list of supported stores (alphabetical) for the stores modal. */
+export const listPage = query({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, { paginationOpts }) => {
+    const result = await ctx.db
+      .query("stores")
+      .withIndex("by_name")
+      .paginate(paginationOpts);
+    return {
+      ...result,
+      page: result.page.map(({ _id, name }) => ({ _id, name })),
+    };
   },
 });
 

@@ -1,6 +1,6 @@
 # Receipt Scanner
 
-Upload a photo of a purchase receipt. OCR running in the browser extracts the **store name**, **date** and **total amount**, and the result is saved to Convex. The **View all receipts** button opens a modal that lists every stored receipt in a scrolling, infinitely loading table.
+Upload a photo of a purchase receipt. OCR running in the browser extracts the **store name**, **date** and **total amount**, and the result is saved to Convex. The **View all receipts** button opens a modal that lists every stored receipt in a paginated table (Previous / Next). The **Supported stores** button opens a similar modal listing the stores the OCR can recognize.
 
 ```
 Browser: photo ──▶ Tesseract.js (WebAssembly) ──▶ parser ──store / date / total──▶ Next.js on Vercel (/api/scan)
