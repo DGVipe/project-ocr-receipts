@@ -1,6 +1,6 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
 [![Convex](https://img.shields.io/badge/backend-Convex-orange)](https://convex.dev)
-[![Tesseract.js](https://img.shields.io/badge/OCR-Tesseract.js-blue)](https://github.com/naptha/tesseract.js)
+[![Tesseract.js](https://img.shields.io/static/v1?label=OCR&message=Tesseract.js&color=blue)](https://github.com/naptha/tesseract.js)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 <p align="center">
