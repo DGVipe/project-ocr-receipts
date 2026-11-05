@@ -3,6 +3,7 @@ import { cookies, headers } from "next/headers";
 import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
+import { PageSkeleton } from "@/components/page-skeleton";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider } from "@/lib/i18n";
 import { LOCALE_COOKIE, localeFromAcceptLanguage, parseLocale } from "@/lib/i18n/locale";
@@ -43,7 +44,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <Suspense fallback={null}>
+          <Suspense fallback={<PageSkeleton />}>
             <LocaleProvider>
               <ConvexClientProvider>{children}</ConvexClientProvider>
               <Toaster richColors position="top-center" />
