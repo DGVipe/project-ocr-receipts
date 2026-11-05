@@ -38,10 +38,13 @@ export function ReceiptsDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="outline" />}>
         <DatabaseIcon /> {t.viewAll}
-        {summary && (
+        {summary ? (
           <Badge variant="secondary" className="ml-1 tabular-nums">
             {summary.totalReceipts}
           </Badge>
+        ) : (
+          // Reserve the badge's space so the button doesn't resize when the count arrives.
+          <Skeleton className="ml-1 h-5 w-7 rounded-4xl" />
         )}
       </DialogTrigger>
       <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-3xl">

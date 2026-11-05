@@ -10,6 +10,7 @@ import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatAmount, formatDate, formatRelative } from "@/lib/format";
 import { loadOcrEngine, scanReceipt } from "@/lib/ocr/scan";
 import { useI18n, type Messages } from "@/lib/i18n";
@@ -274,22 +275,21 @@ export function ReceiptScanner() {
           </div>
         )}
 
-        {quota && (
-          <div className="flex flex-col gap-3 border-t pt-4 text-sm">
-            <Usage
-              label={quota.windowMs >= 3_600_000 ? t.scansLeftHour : t.scansLeftPeriod}
-              used={quota.scansPerWindow - quota.scansRemaining}
-              max={quota.scansPerWindow}
-              display={`${quota.scansRemaining} / ${quota.scansPerWindow}`}
-            />
-            <Usage
-              label={t.yourReceipts}
-              used={quota.userReceipts}
-              max={quota.maxUserReceipts}
-              display={`${quota.userReceipts} / ${quota.maxUserReceipts}`}
-            />
-          </div>
-        )}
+        {/* Always rendered; the numbers fade in place until the quota arrives, so nothing shifts. */}
+        <div className="flex flex-col gap-3 border-t pt-4 text-sm">
+          <Usage
+            label={quota && quota.windowMs < 3_600_000 ? t.scansLeftPeriod : t.scansLeftHour}
+            used={quota ? quota.scansPerWindow - quota.scansRemaining : 0}
+            max={quota?.scansPerWindow ?? 1}
+            display={quota ? `${quota.scansRemaining} / ${quota.scansPerWindow}` : undefined}
+          />
+          <Usage
+            label={t.yourReceipts}
+            used={quota?.userReceipts ?? 0}
+            max={quota?.maxUserReceipts ?? 1}
+            display={quota ? `${quota.userReceipts} / ${quota.maxUserReceipts}` : undefined}
+          />
+        </div>
       </CardContent>
     </Card>
   );
@@ -309,12 +309,27 @@ function Field({ icon, label, value }: { icon: React.ReactNode; label: string; v
   );
 }
 
-function Usage({ label, used, max, display }: { label: string; used: number; max: number; display: string }) {
+function Usage({
+  label,
+  used,
+  max,
+  display,
+}: {
+  label: string;
+  used: number;
+  max: number;
+  /** Undefined while loading. */
+  display: string | undefined;
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex justify-between text-muted-foreground">
         <span>{label}</span>
-        <span className="tabular-nums">{display}</span>
+        {display === undefined ? (
+          <Skeleton className="h-5 w-12" />
+        ) : (
+          <span className="tabular-nums">{display}</span>
+        )}
       </div>
       <Progress value={Math.min(100, (used / max) * 100)} />
     </div>
