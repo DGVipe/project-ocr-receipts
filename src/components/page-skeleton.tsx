@@ -13,13 +13,14 @@ export function PageSkeleton() {
   return (
     <div className="flex flex-1 flex-col bg-muted/30">
       <header className="border-b bg-background">
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4 px-4 py-3">
-          <div className="flex items-center gap-2">
+        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-4 py-3">
+          <div className="flex shrink-0 items-center gap-2">
             <ScanLineIcon className="size-5" />
-            <Skeleton className="hidden h-5 w-36 sm:block" />
+            <Skeleton className="hidden h-5 w-36 md:block" />
           </div>
           <div className="flex items-center gap-3">
-            <Skeleton className="h-8 w-28" />
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-8 w-52" />
             <Skeleton className="h-5 w-[30px] rounded-sm" />
             <Skeleton className="h-6 w-11 rounded-full" />
           </div>
