@@ -46,6 +46,31 @@ async function fetchQuota(): Promise<Quota | null> {
   }
 }
 
+let activeError: string | number | undefined;
+let stopListening: (() => void) | undefined;
+
+function dismissScanError() {
+  stopListening?.();
+  stopListening = undefined;
+  if (activeError !== undefined) toast.dismiss(activeError);
+  activeError = undefined;
+}
+
+/**
+ * Scan errors have no timeout. They go away with the X button, or on the next
+ * click anywhere on the page (that click still reaches whatever was clicked).
+ */
+function scanError(message: string) {
+  dismissScanError();
+  activeError = toast.error(message, {
+    duration: Infinity,
+    closeButton: true,
+    className: "whitespace-pre-line",
+  });
+  document.addEventListener("click", dismissScanError, { capture: true, once: true });
+  stopListening = () => document.removeEventListener("click", dismissScanError, { capture: true });
+}
+
 const MISSING_MESSAGE = {
   store: "missingStore",
   date: "missingDate",
@@ -133,16 +158,16 @@ export function ReceiptScanner() {
         const reset =
           typeof data.resetAt === "number" ? t.canScanAgain(relative(data.resetAt)) : "";
         if (data.code === "missing_fields") {
-          toast.error(missingMessage(t, data.missing), { className: "whitespace-pre-line" });
+          scanError(missingMessage(t, data.missing));
           return;
         }
-        toast.error((serverMessage(t, data) ?? t.scanFailed) + reset);
+        scanError((serverMessage(t, data) ?? t.scanFailed) + reset);
         return;
       }
       setResult(data.receipt);
       toast.success(t.scanSaved);
     } catch (err) {
-      toast.error(err instanceof Error ? ocrMessage(t, err.message) : t.scanFailed);
+      scanError(err instanceof Error ? ocrMessage(t, err.message) : t.scanFailed);
     } finally {
       setStatus("idle");
       void refreshQuota();
