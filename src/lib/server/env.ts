@@ -12,4 +12,13 @@ export const serverEnv = {
   get convexServerSecret() {
     return required("CONVEX_SERVER_SECRET");
   },
+  /**
+   * Dev-only: artificial delay (ms) before the page shell resolves, to inspect
+   * the loading skeleton. Ignored in production builds.
+   */
+  get skeletonDelayMs() {
+    if (process.env.NODE_ENV === "production") return 0;
+    const ms = Number(process.env.SKELETON_DELAY_MS);
+    return Number.isFinite(ms) && ms > 0 ? ms : 0;
+  },
 };

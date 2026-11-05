@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { ThemeProvider } from "@/components/theme-provider";
+import { serverEnv } from "@/lib/server/env";
 import { I18nProvider } from "@/lib/i18n";
 import { LOCALE_COOKIE, localeFromAcceptLanguage, parseLocale } from "@/lib/i18n/locale";
 import { Toaster } from "@/components/ui/sonner";
@@ -30,6 +31,8 @@ export const metadata: Metadata = {
  * visit the browser's language (Accept-Language), so the page never switches.
  */
 async function LocaleProvider({ children }: { children: React.ReactNode }) {
+  // Dev-only (SKELETON_DELAY_MS): keep the skeleton on screen long enough to inspect it.
+  if (serverEnv.skeletonDelayMs) await new Promise((r) => setTimeout(r, serverEnv.skeletonDelayMs));
   const saved = parseLocale((await cookies()).get(LOCALE_COOKIE)?.value);
   const locale = saved ?? localeFromAcceptLanguage((await headers()).get("accept-language"));
   return <I18nProvider initialLocale={locale}>{children}</I18nProvider>;
