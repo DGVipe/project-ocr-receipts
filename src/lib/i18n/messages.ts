@@ -47,8 +47,12 @@ const en = {
   // Server error codes
   cross_origin: "Cross-origin requests are not allowed.",
   bad_body: "Expected a JSON body.",
-  no_details:
-    "No receipt details were found. Try a sharper, well-lit photo with the receipt filling the frame.",
+  missing_fields: "Some receipt details are missing.",
+  missingStore:
+    "Store: either the scanned store is missing from our list, or its name couldn't be read from the image.",
+  missingDate: "Date: it couldn't be read from the image.",
+  missingTotal: "Total: it couldn't be read from the image.",
+  retryTip: "Try a sharper, well-lit photo with the receipt filling the frame.",
   save_failed: "Something went wrong while saving the receipt.",
   global_cap: "The receipt database is full. No new receipts can be stored.",
   user_cap: "You have reached the limit of stored receipts.",
@@ -103,8 +107,12 @@ const es: Dict = {
   ocrBrowser: "Tu navegador no puede procesar imágenes aquí.",
   cross_origin: "No se permiten solicitudes de otros orígenes.",
   bad_body: "Se esperaba un cuerpo JSON.",
-  no_details:
-    "No se encontraron datos de la boleta. Prueba con una foto más nítida y bien iluminada, con la boleta llenando el encuadre.",
+  missing_fields: "Faltan algunos datos de la boleta.",
+  missingStore:
+    "Tienda: o la tienda escaneada no está en nuestra lista, o no se pudo leer su nombre en la imagen.",
+  missingDate: "Fecha: no se pudo leer en la imagen.",
+  missingTotal: "Total: no se pudo leer en la imagen.",
+  retryTip: "Prueba con una foto más nítida y bien iluminada, con la boleta llenando el encuadre.",
   save_failed: "Algo salió mal al guardar la boleta.",
   global_cap: "La base de datos de boletas está llena. No se pueden guardar más boletas.",
   user_cap: "Has alcanzado el límite de boletas guardadas.",

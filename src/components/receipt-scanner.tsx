@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CalendarIcon, ImageUpIcon, Loader2Icon, ReceiptIcon, StoreIcon, XIcon } from "lucide-react";
+import { useQuery } from "convex/react";
 import { toast } from "sonner";
+
+import { api } from "@convex/_generated/api";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +46,20 @@ async function fetchQuota(): Promise<Quota | null> {
   }
 }
 
+const MISSING_MESSAGE = {
+  store: "missingStore",
+  date: "missingDate",
+  total: "missingTotal",
+} as const;
+
+/** One sentence per missing field, so the user knows exactly what wasn't found. */
+function missingMessage(t: Messages, missing: unknown): string {
+  const lines = (Array.isArray(missing) ? missing : [])
+    .filter((f): f is keyof typeof MISSING_MESSAGE => f in MISSING_MESSAGE)
+    .map((f) => t[MISSING_MESSAGE[f]]);
+  return lines.length ? [...lines, t.retryTip].join("\n") : t.missing_fields;
+}
+
 function serverMessage(t: Messages, data: { code?: string; error?: string }): string | undefined {
   const m = data.code ? t[data.code as keyof Messages] : undefined;
   return typeof m === "string" ? m : data.error;
@@ -58,6 +75,7 @@ export function ReceiptScanner() {
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<ScannedReceipt | null>(null);
   const [quota, setQuota] = useState<Quota | null>(null);
+  const stores = useQuery(api.stores.list);
 
   const refreshQuota = useCallback(async () => {
     const next = await fetchQuota();
@@ -100,11 +118,11 @@ export function ReceiptScanner() {
   }
 
   async function scan() {
-    if (!file || status === "scanning") return;
+    if (!file || !stores || status === "scanning") return;
     setStatus("scanning");
     setResult(null);
     try {
-      const fields = await scanReceipt(file);
+      const fields = await scanReceipt(file, stores);
       const res = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -114,6 +132,10 @@ export function ReceiptScanner() {
       if (!res.ok) {
         const reset =
           typeof data.resetAt === "number" ? t.canScanAgain(relative(data.resetAt)) : "";
+        if (data.code === "missing_fields") {
+          toast.error(missingMessage(t, data.missing), { className: "whitespace-pre-line" });
+          return;
+        }
         toast.error((serverMessage(t, data) ?? t.scanFailed) + reset);
         return;
       }
@@ -200,7 +222,7 @@ export function ReceiptScanner() {
           <Button
             size="lg"
             onClick={scan}
-            disabled={!file || status === "scanning" || blockedReason !== null}
+            disabled={!file || !stores || status === "scanning" || blockedReason !== null}
           >
             {status === "scanning" ? (
               <>

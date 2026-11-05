@@ -11,7 +11,7 @@
  * - Date: a line containing "Fecha"/"Date" proposes the date on that line;
  *   other dates are weak candidates. SII stamp lines ("Resolución 80 del ...")
  *   are ignored.
- * - Store: only names from `STORES` are reported.
+ * - Store: only names from the known-stores list (stored in Convex) are reported.
  * - Currency: "CLP" for Spanish receipts, "USD" for English ones, unless a code
  *   ("US$", "CLP") is printed. The language also decides day- vs month-first
  *   dates.
@@ -24,9 +24,9 @@
  * `node --test`.
  */
 
-import { STORES } from "./stores.ts";
-
 export type Currency = "USD" | "CLP";
+/** A known store: the name to report and the spellings to look for on the receipt. */
+export type StoreEntry = { name: string; aliases: string[] };
 type Language = "es" | "en";
 type DateOrder = "AUTO" | "MDY" | "DMY";
 
@@ -73,11 +73,11 @@ const OTHER_DATE = 1; // any other date
 const CONFIDENT_TOTAL = 3;
 const CONFIDENT_DATE = 3;
 
-export function parseReceipt(text: string): ReceiptData {
-  return combine([analyze(text)]);
+export function parseReceipt(text: string, stores: StoreEntry[]): ReceiptData {
+  return combine([analyze(text, stores)]);
 }
 
-export function analyze(text: string): Evidence {
+export function analyze(text: string, stores: StoreEntry[]): Evidence {
   const lines = text
     .split(/\r\n|[\n\r\v\f\x1c-\x1e\x85]/)
     .map((ln) => ln.trim())
@@ -86,7 +86,7 @@ export function analyze(text: string): Evidence {
   const ev: Evidence = {
     totals: new Map(),
     dates: new Map(),
-    store: matchStore(lines),
+    store: matchStore(lines, stores),
     fallbackTotal: null,
     language: detectLanguage(text),
     explicitCurrency: explicitCurrency(text),
@@ -175,9 +175,6 @@ function normWords(s: string): string {
   return (fold(s).match(/[a-z0-9]+/g) ?? []).join(" ");
 }
 
-const STORE_ALIASES = STORES.flatMap(([name, aliases]) =>
-  aliases.map((alias) => [name, normWords(alias)] as const),
-);
 
 /** Python's `difflib.SequenceMatcher(None, a, b).ratio()`. */
 export function similarity(a: string, b: string): number {
@@ -253,11 +250,14 @@ function aliasIn(alias: string, line: string): boolean {
 }
 
 /** The known store mentioned highest on the receipt, if any. */
-export function matchStore(lines: string[]): string | null {
+export function matchStore(lines: string[], stores: StoreEntry[]): string | null {
+  const aliases = stores.flatMap(({ name, aliases }) =>
+    aliases.map((alias) => [name, normWords(alias)] as const).filter(([, alias]) => alias),
+  );
   for (const line of lines) {
     const norm = normWords(line);
     if (!norm) continue;
-    for (const [name, alias] of STORE_ALIASES) {
+    for (const [name, alias] of aliases) {
       if (aliasIn(alias, norm)) return name;
     }
   }
@@ -462,7 +462,7 @@ function scoreTotals(lines: string[], ev: Evidence): void {
 }
 
 export function extractTotal(lines: string[]): [number | null, Currency | null] {
-  const r = parseReceipt(lines.join("\n"));
+  const r = parseReceipt(lines.join("\n"), []);
   return [r.totalAmount, r.currency];
 }
 
@@ -566,5 +566,5 @@ function scoreDates(lines: string[], order: "MDY" | "DMY", ev: Evidence): void {
 }
 
 export function extractDate(lines: string[]): string | null {
-  return parseReceipt(lines.join("\n")).purchaseDate;
+  return parseReceipt(lines.join("\n"), []).purchaseDate;
 }

@@ -2,18 +2,24 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, test } from "node:test";
 
+import { STORE_SEED } from "../../../convex/storeSeed.ts";
 import {
-  analyze,
+  analyze as analyzeWith,
   combine,
   extractDate,
   extractTotal,
   isConfident,
-  matchStore,
+  matchStore as matchStoreWith,
   parseNumber,
-  parseReceipt,
+  parseReceipt as parseReceiptWith,
   parserConfig,
   similarity,
 } from "./parser.ts";
+
+const STORES = STORE_SEED.map(([name, aliases]) => ({ name, aliases }));
+const analyze = (text: string) => analyzeWith(text, STORES);
+const parseReceipt = (text: string) => parseReceiptWith(text, STORES);
+const matchStore = (lines: string[]) => matchStoreWith(lines, STORES);
 
 const US_RECEIPT = `
 WALMART SUPERCENTER

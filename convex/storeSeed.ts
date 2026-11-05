@@ -1,5 +1,8 @@
 /**
- * Known stores. The OCR only reports a store name when one of these matches.
+ * Initial contents of the `stores` table. Run `npx convex run stores:seed` to
+ * insert these (existing stores are updated, nothing is deleted). After that the
+ * table is the source of truth: edit it in the Convex dashboard or with
+ * `npx convex run stores:upsert '{"name":"...","aliases":["..."]}'`.
  *
  * Each entry is `[display name, aliases]`. Aliases are matched against the
  * receipt text case- and accent-insensitively, with some tolerance for OCR
@@ -11,7 +14,7 @@
  * a receipt headed "Abarrotes Económicos" that later says "por cta. de Walmart
  * Chile" is Abarrotes Económicos).
  */
-export const STORES: [name: string, aliases: string[]][] = [
+export const STORE_SEED: [name: string, aliases: string[]][] = [
   // Samples
   ["Supermercado La Magia de la Economía", ["la magia de la economia"]],
   ["Farmacias Ahumada", ["farmacias ahumada", "farmacia ahumada"]],

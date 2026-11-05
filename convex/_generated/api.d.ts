@@ -13,6 +13,8 @@ import type * as lib from "../lib.js";
 import type * as limits from "../limits.js";
 import type * as receipts from "../receipts.js";
 import type * as scans from "../scans.js";
+import type * as storeSeed from "../storeSeed.js";
+import type * as stores from "../stores.js";
 
 import type {
   ApiFromModules,
@@ -26,6 +28,8 @@ declare const fullApi: ApiFromModules<{
   limits: typeof limits;
   receipts: typeof receipts;
   scans: typeof scans;
+  storeSeed: typeof storeSeed;
+  stores: typeof stores;
 }>;
 
 /**

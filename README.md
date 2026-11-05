@@ -66,7 +66,7 @@ The OCR ([`src/lib/ocr/scan.ts`](src/lib/ocr/scan.ts)) upscales the photo, remov
 - **Total:** taken from lines containing "total". "Total Boleta" and "Total a pagar" outrank a plain "TOTAL", and Sub-Total, Total Neto/Afecto/Exento/IVA/Dcto and item-count lines are ignored. A card payment line (T.Debito, Transbank…) with the same amount, or an IVA line consistent with 19%, adds confidence. The passes vote, so a digit misread in one pass is outvoted.
 - **Date:** taken from lines containing "Fecha"/"Emisión"/"Date". SII stamp dates ("Resolución 80 del …") are ignored.
 - **Currency:** the receipt's language is detected from its words. Spanish gives `CLP` and English gives `USD`, unless `US$`/`CLP` is printed on it.
-- **Store:** only reported when the receipt matches a store in [`src/lib/ocr/stores.ts`](src/lib/ocr/stores.ts). Add a store there to recognize it.
+- **Store:** only reported when the receipt matches a store in the Convex `stores` table. Run `npx convex run stores:seed` once to load the built-in list from [`convex/storeSeed.ts`](convex/storeSeed.ts), then add more with `npx convex run stores:upsert '{"name":"...","aliases":["..."]}'` or in the Convex dashboard. A scan missing the store, date or total isn't saved, and the UI says which one.
 
 Amounts like `1,234.56`, `1.234,56` and peso-style `$12.990` are all handled. Any field it isn't confident about comes back empty.
 

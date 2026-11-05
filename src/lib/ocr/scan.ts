@@ -1,5 +1,5 @@
 import type { Worker } from "tesseract.js";
-import { analyze, combine, isConfident, type Evidence, type ReceiptData } from "./parser.ts";
+import { analyze, combine, isConfident, type Evidence, type ReceiptData, type StoreEntry } from "./parser.ts";
 import { preprocessVariants, type GrayImage } from "./preprocess.ts";
 
 // Served from this site by scripts/copy-tesseract-assets.mjs, never a CDN.
@@ -41,8 +41,8 @@ export function loadOcrEngine(): Promise<Worker> {
   return engine;
 }
 
-/** Runs OCR on the photo in this browser and extracts store, date and total. */
-export async function scanReceipt(file: File): Promise<ReceiptData> {
+/** Runs OCR on the photo in this browser and extracts store (from `stores`), date and total. */
+export async function scanReceipt(file: File, stores: StoreEntry[]): Promise<ReceiptData> {
   const base = await loadGray(file);
   let worker: Worker;
   try {
@@ -56,7 +56,7 @@ export async function scanReceipt(file: File): Promise<ReceiptData> {
   for (const variant of preprocessVariants(base)) {
     if (evidence.length > 0 && performance.now() - start > BUDGET_MS - MIN_PASS_MS) break;
     const { data } = await worker.recognize(toCanvas(variant));
-    evidence.push(analyze(data.text));
+    evidence.push(analyze(data.text, stores));
     if (isConfident(evidence)) break;
   }
   return combine(evidence);

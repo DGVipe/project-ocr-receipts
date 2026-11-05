@@ -1,10 +1,7 @@
-import { fetchMutation } from "convex/nextjs";
+import { fetchMutation, fetchQuery } from "convex/nextjs";
 import { api } from "@convex/_generated/api";
-import { STORES } from "@/lib/ocr/stores";
 import { getIdentity } from "@/lib/server/identity";
 import { serverEnv } from "@/lib/server/env";
-
-const STORE_NAMES = new Set(STORES.map(([name]) => name));
 
 function error(message: string, status: number, extra: Record<string, unknown> = {}) {
   return Response.json({ error: message, ...extra }, { status });
@@ -14,10 +11,10 @@ function error(message: string, status: number, extra: Record<string, unknown> =
  * The fields the browser's OCR extracted. The client can't be trusted, so
  * anything that isn't a value the parser could have produced becomes null.
  */
-function readResult(body: unknown) {
+function readResult(body: unknown, storeNames: Set<string>) {
   const b = (typeof body === "object" && body !== null ? body : {}) as Record<string, unknown>;
   return {
-    storeName: typeof b.storeName === "string" && STORE_NAMES.has(b.storeName) ? b.storeName : null,
+    storeName: typeof b.storeName === "string" && storeNames.has(b.storeName) ? b.storeName : null,
     totalAmount:
       typeof b.totalAmount === "number" && Number.isFinite(b.totalAmount) && b.totalAmount > 0
         ? b.totalAmount
@@ -38,11 +35,20 @@ export async function POST(request: Request) {
     return error("Cross-origin requests are not allowed.", 403, { code: "cross_origin" });
   }
 
-  let result: ReturnType<typeof readResult>;
+  let body: unknown;
   try {
-    result = readResult(await request.json());
+    body = await request.json();
   } catch {
     return error("Expected a JSON body.", 400, { code: "bad_body" });
+  }
+
+  let result: ReturnType<typeof readResult>;
+  try {
+    const stores = await fetchQuery(api.stores.list, {});
+    result = readResult(body, new Set(stores.map((s) => s.name)));
+  } catch (err) {
+    console.error("Couldn't load the store list", err);
+    return error("Something went wrong while saving the receipt.", 500, { code: "save_failed" });
   }
 
   const { userKey, ipKey } = await getIdentity();
@@ -59,13 +65,18 @@ export async function POST(request: Request) {
   const { scanId } = reservation;
 
   try {
-    if (!result.storeName && result.totalAmount === null && !result.purchaseDate) {
+    // A receipt is only saved when the store, date and total were all found.
+    const missing = [
+      ...(result.storeName ? [] : ["store"]),
+      ...(result.purchaseDate ? [] : ["date"]),
+      ...(result.totalAmount === null ? ["total"] : []),
+    ];
+    if (missing.length) {
       await fetchMutation(api.scans.fail, { secret, scanId, userKey });
-      return error(
-        "No receipt details were found. Try a sharper, well-lit photo with the receipt filling the frame.",
-        422,
-        { code: "no_details" },
-      );
+      return error(`Missing from the receipt: ${missing.join(", ")}.`, 422, {
+        code: "missing_fields",
+        missing,
+      });
     }
 
     const saved = await fetchMutation(api.scans.complete, { secret, scanId, userKey, ...result });

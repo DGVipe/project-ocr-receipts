@@ -26,6 +26,13 @@ export default defineSchema({
     .index("by_ip_time", ["ipKey", "createdAt"])
     .index("by_time", ["createdAt"]),
 
+  // Stores the OCR can recognize (see stores.ts). Aliases are the spellings
+  // matched against the receipt text.
+  stores: defineTable({
+    name: v.string(),
+    aliases: v.array(v.string()),
+  }).index("by_name", ["name"]),
+
   // Singleton counter so the global cap doesn't require scanning the table.
   stats: defineTable({
     name: v.literal("global"),
