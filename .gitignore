@@ -42,5 +42,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# claude code
-.claude
+# claude code: .claude/ is committed; only personal settings stay local
+.claude/settings.local.json
