@@ -1,73 +1,190 @@
-# Receipt Scanner
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
+[![Convex](https://img.shields.io/badge/backend-Convex-orange)](https://convex.dev)
+[![Tesseract.js](https://img.shields.io/badge/OCR-Tesseract.js-blue)](https://github.com/naptha/tesseract.js)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Upload a photo of a purchase receipt. OCR running in the browser extracts the **store name**, **date** and **total amount**, and the result is saved to Convex. The **View all receipts** button opens a modal that lists every stored receipt in a paginated table (Previous / Next). The **Supported stores** button opens a similar modal listing the stores the OCR can recognize.
+<p align="center">
+  <h1 align="center">Receipt Scanner</h1>
+  <p align="center">Reads the store, date and total from a receipt photo, entirely in the browser.</p>
+</p>
+
+<p align="center">
+  <a href="#how-it-works">How it works</a> •
+  <a href="#project-structure">Structure</a> •
+  <a href="#quick-start">Quick start</a> •
+  <a href="#deployment">Deployment</a> •
+  <a href="#limits">Limits</a> •
+  <a href="#ocr-parser">OCR parser</a>
+</p>
+
+## About
+
+Pick a receipt photo. [Tesseract.js](https://github.com/naptha/tesseract.js) runs the OCR on your device, a parser extracts the **store name**, **date** and **total**, and those three fields are saved to [Convex](https://convex.dev). Two modals list the stored receipts and the supported stores, with Previous/Next pagination.
+
+- **No OCR server.** The image never leaves the browser. Only the three extracted fields are sent.
+- **No CDN.** The Tesseract worker, WASM core and eng+spa language data are self-hosted from `public/tesseract/` (~9 MB on first use, then cached).
+- **No login.** Users are identified by an anonymous cookie, and both the cookie id and the IP are HMAC-hashed before they are stored.
+
+## How it works
 
 ```
-Browser: photo ──▶ Tesseract.js (WebAssembly) ──▶ parser ──store / date / total──▶ Next.js on Vercel (/api/scan)
-                                                                                         │
-                                                                                         ▼
-                                    modal reads receipts in real time ──▶ Convex (receipts, rate-limit events)
+Browser                                   Next.js (Vercel)              Convex
+───────                                   ────────────────              ──────
+photo
+  │ EXIF rotate, grayscale, ~3200px
+  ▼
+preprocess ×3 ──▶ Tesseract.js ──▶ parser
+                                    │ { store, date, total, currency }
+                                    ▼
+                                  POST /api/scan ──▶ same-origin check
+                                                     sanitize fields
+                                                     hash cookie + IP ──▶ scans.reserve   (rate limits)
+                                                                          scans.complete  (insert receipt)
+                                                                          scans.fail      (422 missing_fields)
+modals ◀──────────────────────── live queries ◀──────────────────────── receipts / stores
 ```
 
-It's a single Next.js 16 app (App Router, Tailwind v4, shadcn/ui), with its Convex backend in `convex/`.
+| Step | Where | What happens |
+| ---- | ----- | ------------ |
+| 1 | [`src/lib/ocr/scan.ts`](src/lib/ocr/scan.ts) | Runs up to 3 preprocessed passes within a 30 s budget and stops once the result is confident |
+| 2 | [`src/app/api/scan/route.ts`](src/app/api/scan/route.ts) | Rejects any field that isn't a known store, a positive total, `USD`/`CLP` or a `YYYY-MM-DD` date |
+| 3 | [`src/lib/server/identity.ts`](src/lib/server/identity.ts) | Sets the httpOnly `receipt_uid` cookie and derives `userKey` / `ipKey` |
+| 4 | [`convex/scans.ts`](convex/scans.ts) | Serializable mutations enforce the limits and save the receipt |
 
-The OCR runs on the user's device with [Tesseract.js](https://github.com/naptha/tesseract.js), so there is no OCR server to host. The Tesseract.js worker, its WebAssembly core and the English + Spanish language data (about 9 MB on first use, then cached by the browser) are copied from `node_modules` into `public/tesseract/` by [`scripts/copy-tesseract-assets.mjs`](scripts/copy-tesseract-assets.mjs) before `npm run dev` and `npm run build`. They're served from the app's own domain, not a CDN. Only the three extracted fields are sent to the server.
+Convex write functions require `CONVEX_SERVER_SECRET`, so only the Next.js server can call them. The public receipt list never returns user keys. Because the OCR runs in the browser, the server can't prove the fields came from a real photo. It only checks that each one is a value the parser could have produced.
 
-## Limits
+## Tech stack
 
-All limits live in [`convex/limits.ts`](convex/limits.ts):
+| Layer | Technology |
+| ----- | ---------- |
+| Framework | Next.js 16 (App Router, Cache Components), React 19 |
+| UI | Tailwind CSS v4, shadcn/ui (base-nova on Base UI), next-themes, sonner |
+| OCR | Tesseract.js 7, LSTM only, `--psm 4`, English + Spanish |
+| Backend | Convex (database, mutations, cron) |
+| Hosting | Vercel |
 
-| Limit                         | Default | Purpose                                         |
-| ----------------------------- | ------- | ----------------------------------------------- |
-| `USER_SCANS_PER_WINDOW`       | 5 / hour | Scans per browser (anonymous cookie id)         |
-| `IP_SCANS_PER_WINDOW`         | 15 / hour | Scans per IP address, so clearing cookies doesn't bypass the limit |
-| `MAX_CONCURRENT_SCANS_PER_USER` | 1     | One scan in flight per user at a time           |
-| `MAX_RECEIPTS_PER_USER`       | 25      | Receipts a single user can store                |
-| `MAX_TOTAL_RECEIPTS`          | 1000    | Whole-database cap; new scans are rejected once full |
+## Project structure
 
-There is no login. Users get a random id in an httpOnly cookie, and both that id and the IP address are HMAC-hashed before they are stored. Failed scans still count toward the rate limit. Images never leave the browser; only the three extracted fields are sent and stored. Because the browser does the OCR, the server can't verify that the fields came from a real photo. It does check that each one is a value the parser could have produced.
+```
+├── convex/
+│   ├── schema.ts            # receipts, stores, scanEvents, stats tables
+│   ├── scans.ts             # reserve / complete / fail / getQuota / pruneOldEvents
+│   ├── receipts.ts          # public list + summary (no user keys)
+│   ├── stores.ts            # supported stores: list / listPage, internal upsert
+│   ├── limits.ts            # every tunable limit and page size
+│   ├── lib.ts               # assertServer() secret guard
+│   └── crons.ts             # hourly prune of old scan events
+├── scripts/
+│   └── copy-tesseract-assets.mjs   # node_modules → public/tesseract (pre-dev / pre-build)
+├── src/
+│   ├── app/
+│   │   ├── page.tsx
+│   │   └── api/
+│   │       ├── scan/route.ts       # validate fields, apply limits, store receipt
+│   │       └── quota/route.ts      # remaining scans for the UI
+│   ├── components/
+│   │   ├── receipt-scanner.tsx     # upload, preview, scan
+│   │   ├── receipts-dialog.tsx     # paginated receipts modal
+│   │   ├── stores-dialog.tsx       # paginated stores modal
+│   │   ├── page-controls.tsx       # shared usePages hook
+│   │   └── ui/                     # shadcn components
+│   └── lib/
+│       ├── ocr/
+│       │   ├── scan.ts             # worker setup + multi-pass loop
+│       │   ├── preprocess.ts       # shadow removal, Otsu, sharpen
+│       │   ├── parser.ts           # field heuristics
+│       │   └── parser.test.ts
+│       ├── server/                 # env + identity (server-only)
+│       └── i18n/                   # English / Spanish UI strings
+└── public/tesseract/               # generated, gitignored
+```
 
-Write mutations require `CONVEX_SERVER_SECRET`, so only the Next.js server can create receipts. The receipt list is public, but it never includes user keys.
+## Quick start
 
-## Local development
-
-Prerequisites: Node 22.18+ (the parser tests run on Node's built-in TypeScript support).
+**Requirements:** Node 22.18+ (the tests use Node's built-in TypeScript support) and a Convex account.
 
 ```bash
 npm install
-npx convex dev            # log in and create a project; writes .env.local; keep it running
+npx convex dev                                                  # creates the project, writes .env.local; keep it running
 npx convex env set CONVEX_SERVER_SECRET "$(openssl rand -hex 32)"
+echo 'CONVEX_SERVER_SECRET=<same value>' >> .env.local
+npm run dev                                                     # http://localhost:3000
 ```
 
-Add the following to `.env.local` (see `.env.example`). `CONVEX_SERVER_SECRET` must be the same value you just set in Convex.
+Stores start empty. Add one so the scanner can recognize it:
 
-```
-CONVEX_SERVER_SECRET=<same value>
+```bash
+npx convex run stores:upsert '{"name":"Lider","aliases":["Lider Express"]}'
 ```
 
-Then run `npm run dev` and open http://localhost:3000. Run the parser tests with `npm test`.
+| Command | Purpose |
+| ------- | ------- |
+| `npm run dev` | Dev server (copies the Tesseract assets first) |
+| `npm run build` | Production build (copies the Tesseract assets first) |
+| `npm test` | Parser tests (`node:test`) |
+| `npm run lint` | ESLint |
+| `npx tsc --noEmit` | Type-check |
+
+### Environment variables
+
+| Variable | Required | Description |
+| -------- | -------- | ----------- |
+| `CONVEX_DEPLOYMENT` | yes | Written by `npx convex dev` |
+| `NEXT_PUBLIC_CONVEX_URL` | yes | Written by `npx convex dev` |
+| `CONVEX_SERVER_SECRET` | yes | Long random string, set **both** in `.env.local` and on Convex |
+| `NEXT_PUBLIC_DATE_ORDER` | no | `AUTO` (default), `DMY` or `MDY`. Inlined at build time |
+| `SKELETON_DELAY_MS` | no | Dev only. Delays the page shell so the loading skeleton stays visible |
+
+See [`.env.example`](.env.example).
 
 ## Deployment
 
-**Convex.** Run `npx convex deploy` (or let Vercel do it, below). Then set the secret on the production deployment: `npx convex env set CONVEX_SERVER_SECRET <value> --prod`.
+**1. Convex.** Set the secret on the production deployment:
 
-**Vercel.** Import the repo, keeping the default Root Directory (the repo root). Then:
+```bash
+npx convex env set CONVEX_SERVER_SECRET <value> --prod
+```
 
-- Build command: `npx convex deploy --cmd 'npm run build'`
-- Environment variables:
-  - `CONVEX_DEPLOY_KEY`: a production deploy key from the Convex dashboard
-  - `CONVEX_SERVER_SECRET`: the same value as on Convex prod
-  - `NEXT_PUBLIC_DATE_ORDER` (optional): see below
+**2. Vercel.** Import the repo and keep the Root Directory at the repo root.
 
-## OCR
+| Setting | Value |
+| ------- | ----- |
+| Build command | `npx convex deploy --cmd 'npm run build'` |
+| `CONVEX_DEPLOY_KEY` | Production deploy key from the Convex dashboard |
+| `CONVEX_SERVER_SECRET` | Same value as on Convex prod |
+| `NEXT_PUBLIC_DATE_ORDER` | Optional |
 
-The OCR ([`src/lib/ocr/scan.ts`](src/lib/ocr/scan.ts)) upscales the photo, removes shadows ([`preprocess.ts`](src/lib/ocr/preprocess.ts)), and runs Tesseract on up to three differently preprocessed versions within a 30 s budget. It stops as soon as the total and date are confidently found. The parser ([`src/lib/ocr/parser.ts`](src/lib/ocr/parser.ts)) reads line by line:
+The build command deploys the Convex functions and then builds Next.js. `next build` doesn't need the secrets.
 
-- **Total:** taken from lines containing "total". "Total Boleta" and "Total a pagar" outrank a plain "TOTAL", and Sub-Total, Total Neto/Afecto/Exento/IVA/Dcto and item-count lines are ignored. A card payment line (T.Debito, Transbank…) with the same amount, or an IVA line consistent with 19%, adds confidence. The passes vote, so a digit misread in one pass is outvoted.
-- **Date:** taken from lines containing "Fecha"/"Emisión"/"Date". SII stamp dates ("Resolución 80 del …") are ignored.
-- **Currency:** the receipt's language is detected from its words. Spanish gives `CLP` and English gives `USD`, unless `US$`/`CLP` is printed on it.
-- **Store:** only reported when the receipt matches a store in the Convex `stores` table. The table starts empty, so an admin has to add the stores with `npx convex run stores:upsert '{"name":"...","aliases":["..."]}'` or in the Convex dashboard. A scan missing the store, date or total isn't saved, and the UI says which one.
+## Limits
 
-Amounts like `1,234.56`, `1.234,56` and peso-style `$12.990` are all handled. Any field it isn't confident about comes back empty.
+Defined in [`convex/limits.ts`](convex/limits.ts).
 
-Ambiguous dates like `03/04/2025` follow `NEXT_PUBLIC_DATE_ORDER`. `AUTO` (the default) reads day-first on Spanish receipts and month-first otherwise, and `DMY`/`MDY` force an order. It's read at build time.
+| Constant | Default | Scope |
+| -------- | ------- | ----- |
+| `USER_SCANS_PER_WINDOW` | 5 / hour | Per browser (cookie id) |
+| `IP_SCANS_PER_WINDOW` | 15 / hour | Per IP, so clearing cookies doesn't reset the limit |
+| `MAX_CONCURRENT_SCANS_PER_USER` | 1 | Scans in flight per user |
+| `MAX_RECEIPTS_PER_USER` | 25 | Stored receipts per user |
+| `MAX_TOTAL_RECEIPTS` | 1000 | Whole database |
+| `LIST_PAGE_SIZE` | 10 | Rows per modal page |
+
+Failed scans count toward the rate limit.
+
+## OCR parser
+
+[`parser.ts`](src/lib/ocr/parser.ts) works line by line. Every pass is scored, the passes are combined, and a field it isn't confident about comes back `null`.
+
+| Field | Rule |
+| ----- | ---- |
+| **Total** | Amount on a "total" line. *Total Boleta* / *Total a pagar* outrank a plain *TOTAL*. Sub-Total, Neto, Afecto, Exento, IVA, Dcto and item-count lines are ignored. A matching card payment line or an IVA line consistent with 19% adds confidence |
+| **Date** | Fecha / Emisión / Date lines win. Resolución and vencimiento dates are ignored. Ambiguous dates follow `NEXT_PUBLIC_DATE_ORDER` (`AUTO` = day-first on Spanish receipts) |
+| **Store** | Fuzzy match against the Convex `stores` table only. Scans without a known store are rejected |
+| **Currency** | Spanish text → `CLP`, English → `USD`. A printed `US$` / `USD` / `CLP` overrides it |
+| **Amounts** | `1,234.56`, `1.234,56` and `$12.990` |
+
+A scan with no store, date or total isn't saved, and the UI says which field is missing.
+
+## License
+
+[MIT](LICENSE) © 2026 DGVipe
