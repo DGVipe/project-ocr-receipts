@@ -20,10 +20,14 @@ export function usePages<T>(
 ) {
   const [requested, setRequested] = useState(0);
   const lastLoaded = Math.max(0, Math.ceil(results.length / size) - 1);
-  // Once everything is loaded, never stay on a page past the end.
-  const page = status === "Exhausted" ? Math.min(requested, lastLoaded) : requested;
-  const hasNext = (page + 1) * size < results.length || status === "CanLoadMore";
+  // Keep showing the current page until the requested one has arrived, so the
+  // modal doesn't flash empty (and resize) while the next batch loads.
+  const arrived = requested * size < results.length;
+  const page = arrived
+    ? requested
+    : Math.max(0, Math.min(status === "Exhausted" ? requested : requested - 1, lastLoaded));
   const loading = status === "LoadingMore";
+  const hasNext = (page + 1) * size < results.length || status === "CanLoadMore" || loading;
 
   return {
     page,
