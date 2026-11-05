@@ -1,14 +1,20 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
+import { LOCALE_COOKIE, parseLocale } from "./locale";
 import { MESSAGES, type Locale, type Messages } from "./messages";
 
-const STORAGE_KEY = "locale";
 const CHANGE_EVENT = "locale-change";
 
+function savedLocale(): Locale | null {
+  const fromCookie = document.cookie.match(new RegExp(`(?:^|; )${LOCALE_COOKIE}=([^;]*)`))?.[1];
+  // localStorage: where earlier versions kept the choice.
+  return parseLocale(fromCookie) ?? parseLocale(localStorage.getItem(LOCALE_COOKIE));
+}
+
 function detectLocale(): Locale {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved === "en" || saved === "es") return saved;
+  const saved = savedLocale();
+  if (saved) return saved;
   // Default to the device's language: Spanish for any es-*, English otherwise.
   return navigator.language?.toLowerCase().startsWith("es") ? "es" : "en";
 }
@@ -25,12 +31,21 @@ function subscribe(cb: () => void) {
 type I18n = { locale: Locale; t: Messages; setLocale: (l: Locale) => void };
 const I18nContext = createContext<I18n | null>(null);
 
-export function I18nProvider({ children }: { children: React.ReactNode }) {
-  // The server (and first hydration pass) renders English, then the real locale applies.
-  const locale = useSyncExternalStore(subscribe, detectLocale, () => "en" as Locale);
+export function I18nProvider({
+  children,
+  initialLocale = "en",
+}: {
+  children: React.ReactNode;
+  /** The locale the server picked (saved cookie, else Accept-Language). Used for the server render and hydration. */
+  initialLocale?: Locale;
+}) {
+  // The server (and first hydration pass) renders `initialLocale`, so the first
+  // paint is already in the right language. The client check below only matters
+  // if it disagrees with the server (e.g. a language saved in localStorage).
+  const locale = useSyncExternalStore(subscribe, detectLocale, () => initialLocale);
 
   const setLocale = useCallback((next: Locale) => {
-    localStorage.setItem(STORAGE_KEY, next);
+    document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
     window.dispatchEvent(new Event(CHANGE_EVENT));
   }, []);
 

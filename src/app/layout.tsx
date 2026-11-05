@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { cookies, headers } from "next/headers";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider } from "@/lib/i18n";
+import { LOCALE_COOKIE, localeFromAcceptLanguage, parseLocale } from "@/lib/i18n/locale";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -21,6 +24,16 @@ export const metadata: Metadata = {
   description: "Scan purchase receipts and extract the store, date and total with OCR.",
 };
 
+/**
+ * Picks the language before anything renders: the saved choice, or on a first
+ * visit the browser's language (Accept-Language), so the page never switches.
+ */
+async function LocaleProvider({ children }: { children: React.ReactNode }) {
+  const saved = parseLocale((await cookies()).get(LOCALE_COOKIE)?.value);
+  const locale = saved ?? localeFromAcceptLanguage((await headers()).get("accept-language"));
+  return <I18nProvider initialLocale={locale}>{children}</I18nProvider>;
+}
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -30,10 +43,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <I18nProvider>
-            <ConvexClientProvider>{children}</ConvexClientProvider>
-            <Toaster richColors position="top-center" />
-          </I18nProvider>
+          <Suspense fallback={null}>
+            <LocaleProvider>
+              <ConvexClientProvider>{children}</ConvexClientProvider>
+              <Toaster richColors position="top-center" />
+            </LocaleProvider>
+          </Suspense>
         </ThemeProvider>
       </body>
     </html>
