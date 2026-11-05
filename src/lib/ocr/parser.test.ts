@@ -2,7 +2,6 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, test } from "node:test";
 
-import { STORE_SEED } from "../../../convex/storeSeed.ts";
 import {
   analyze as analyzeWith,
   combine,
@@ -16,7 +15,44 @@ import {
   similarity,
 } from "./parser.ts";
 
-const STORES = STORE_SEED.map(([name, aliases]) => ({ name, aliases }));
+// A sample of the `stores` table, which holds the real list.
+const TEST_STORES: [name: string, aliases: string[]][] = [
+  // Samples
+  ["Supermercado La Magia de la Economía", ["la magia de la economia"]],
+  ["Farmacias Ahumada", ["farmacias ahumada", "farmacia ahumada"]],
+  ["Abarrotes Económicos", ["abarrotes economicos"]],
+  ["Barnes & Noble Booksellers", ["barnes & noble booksellers"]],
+  // Supermarkets
+  ["Lider", ["hiper lider", "express de lider", "supermercado lider", "lider express"]],
+  ["Walmart Chile", ["walmart chile"]],
+  ["Jumbo", ["jumbo"]],
+  ["Santa Isabel", ["santa isabel"]],
+  ["Unimarc", ["unimarc"]],
+  ["Tottus", ["tottus"]],
+  ["Acuenta", ["acuenta"]],
+  ["Mayorista 10", ["mayorista 10"]],
+  ["Alvi", ["supermercado alvi", "alvi supermercados"]],
+  ["OK Market", ["ok market"]],
+  // Local markets
+  ["Prolog F y V Limitada", ["prolog f y v limitada"]],
+  // Pharmacies
+  ["Cruz Verde", ["cruz verde"]],
+  ["Salcobrand", ["salcobrand"]],
+  ["Dr. Simi", ["farmacias similares", "dr simi"]],
+  // Home improvement / department stores
+  ["Sodimac", ["sodimac", "homecenter"]],
+  ["Easy", ["easy retail", "tiendas easy"]],
+  ["Construmart", ["construmart"]],
+  ["Falabella", ["falabella"]],
+  ["Ripley", ["ripley"]],
+  ["Paris", ["tiendas paris"]],
+  // Fuel / convenience
+  ["Copec", ["copec"]],
+  ["Shell", ["enex", "shell"]],
+  ["Petrobras", ["petrobras", "aramco"]],
+];
+
+const STORES = TEST_STORES.map(([name, aliases]) => ({ name, aliases }));
 const analyze = (text: string) => analyzeWith(text, STORES);
 const parseReceipt = (text: string) => parseReceiptWith(text, STORES);
 const matchStore = (lines: string[]) => matchStoreWith(lines, STORES);
