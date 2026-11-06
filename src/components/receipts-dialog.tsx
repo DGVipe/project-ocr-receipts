@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { api } from "@convex/_generated/api";
 import { LIST_PAGE_SIZE } from "@convex/limits";
+import { TapRevealCell } from "@/components/tap-reveal-cell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,19 +47,21 @@ export function ReceiptsDialog() {
 
   return (
     <Dialog {...dialog.props(ready)}>
-      <DialogTrigger render={<Button variant="outline" />}>
-        <DatabaseIcon />{" "}
-        {t.viewAll}
+      <DialogTrigger
+        render={<Button variant="outline" aria-label={t.viewAll} />}
+      >
+        <DatabaseIcon />
+        <span className="hidden sm:inline">{t.viewAll}</span>
         {summary ? (
-          <Badge variant="secondary" className="ml-1 tabular-nums">
+          <Badge variant="secondary" className="sm:ml-1 tabular-nums">
             {summary.totalReceipts}
           </Badge>
         ) : (
           // Reserve the badge's space so the button doesn't resize when the count arrives.
-          <Skeleton className="ml-1 h-5 w-7 rounded-4xl" />
+          <Skeleton className="h-5 w-7 rounded-4xl sm:ml-1" />
         )}
       </DialogTrigger>
-      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-3xl">
+      <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-[min(48rem,calc(100%-2rem))]">
         {/* Sits left of the dialog's close (X) button */}
         {summary && summary.totalReceipts > 0 && <ExportXlsButton />}
         <DialogHeader className="pr-28 sm:pr-40">
@@ -93,13 +96,13 @@ function ReceiptsTable({
     <>
       <ScrollArea className="min-h-0 rounded-lg border">
         {/* overflow-visible lets the header stick to the ScrollArea viewport */}
-        <Table containerClassName="overflow-visible">
+        <Table containerClassName="overflow-visible" className="table-fixed">
           <TableHeader className="sticky top-0 z-10 bg-popover">
             <TableRow>
-              <TableHead>{t.store}</TableHead>
-              <TableHead>{t.date}</TableHead>
-              <TableHead className="text-right">{t.total}</TableHead>
-              <TableHead className="hidden sm:table-cell">
+              <TableHead className="px-1.5 sm:px-2">{t.store}</TableHead>
+              <TableHead className="w-24 px-1.5 sm:w-32 sm:px-2">{t.date}</TableHead>
+              <TableHead className="w-20 px-1.5 text-right sm:w-32 sm:px-2">{t.total}</TableHead>
+              <TableHead className="hidden w-44 sm:table-cell">
                 {t.scanned}
               </TableHead>
             </TableRow>
@@ -107,16 +110,18 @@ function ReceiptsTable({
           <TableBody>
             {pages.rows.map((r) => (
               <TableRow key={r._id}>
-                <TableCell
-                  className="max-w-48 truncate font-medium"
+                <TapRevealCell
+                  className="px-1.5 font-medium sm:px-2"
                   title={r.storeName ?? undefined}
                 >
                   {r.storeName ?? (
                     <span className="text-muted-foreground">{t.unknown}</span>
                   )}
+                </TapRevealCell>
+                <TableCell className="truncate px-1.5 text-xs sm:px-2 sm:text-sm">
+                  {formatDate(r.purchaseDate, locale)}
                 </TableCell>
-                <TableCell>{formatDate(r.purchaseDate, locale)}</TableCell>
-                <TableCell className="text-right tabular-nums">
+                <TableCell className="truncate px-1.5 text-right text-xs tabular-nums sm:px-2 sm:text-sm">
                   {formatAmount(r.totalAmount, r.currency, locale)}
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground sm:table-cell">

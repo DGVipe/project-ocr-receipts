@@ -228,7 +228,7 @@ export function ReceiptScanner() {
               selectFile(e.dataTransfer.files?.[0]);
             }}
             className={cn(
-              "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-10 text-center transition-colors hover:bg-muted/50",
+              "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-6 sm:p-10 text-center transition-colors hover:bg-muted/50",
               dragging && "border-primary bg-muted/50",
             )}
           >

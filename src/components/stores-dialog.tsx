@@ -5,6 +5,7 @@ import { StoreIcon } from "lucide-react";
 
 import { api } from "@convex/_generated/api";
 import { LIST_PAGE_SIZE } from "@convex/limits";
+import { TapRevealCell } from "@/components/tap-reveal-cell";
 import { PageControls, useDeferredDialog, usePages } from "@/components/page-controls";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
-  TableCell,
   TableRow,
 } from "@/components/ui/table";
 import { useI18n } from "@/lib/i18n";
@@ -37,11 +37,13 @@ export function StoresDialog() {
 
   return (
     <Dialog {...dialog.props(ready)}>
-      <DialogTrigger render={<Button variant="outline" />}>
-        <StoreIcon />{" "}
-        {t.supportedStores}
+      <DialogTrigger
+        render={<Button variant="outline" aria-label={t.supportedStores} />}
+      >
+        <StoreIcon />
+        <span className="hidden sm:inline">{t.supportedStores}</span>
       </DialogTrigger>
-      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-sm">
+      <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>{t.storesDialogTitle}</DialogTitle>
           <DialogDescription>{t.storesDialogDescription}</DialogDescription>
@@ -67,11 +69,13 @@ function StoresTable({
   return (
     <>
       <ScrollArea className="min-h-0 rounded-lg border">
-        <Table containerClassName="overflow-visible">
+        <Table containerClassName="overflow-visible" className="table-fixed">
           <TableBody>
             {pages.rows.map((s) => (
               <TableRow key={s._id}>
-                <TableCell className="font-medium">{s.name}</TableCell>
+                <TapRevealCell className="font-medium" title={s.name}>
+                  {s.name}
+                </TapRevealCell>
               </TableRow>
             ))}
           </TableBody>

@@ -11,12 +11,12 @@ export function SiteHeader() {
   const { t } = useI18n();
   return (
     <header className="border-b bg-background">
-      <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-4 py-3">
+      <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-4 py-3">
         <div className="flex shrink-0 items-center gap-2 font-semibold whitespace-nowrap">
           <ScanLineIcon className="size-5" />
           <span className="hidden md:inline">{t.appName}</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <StoresDialog />
           <ReceiptsDialog />
           <SiteControls />
