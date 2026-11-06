@@ -18,7 +18,7 @@
 
 - All tunable limits are in [`convex/limits.ts`](../../convex/limits.ts), including `LIST_PAGE_SIZE`, which the client imports too.
 - Write and identity-taking functions are public but take a `secret` arg checked by `assertServer()` ([`convex/lib.ts`](../../convex/lib.ts)). Only the Next.js server holds the secret.
-- `receipts.list` and `receipts.summary` are public with no secret and must never return `userKey`.
+- `receipts.list`, `receipts.exportAll` (bounded by `MAX_TOTAL_RECEIPTS`, feeds the Excel export) and `receipts.summary` are public with no secret and must never return `userKey`.
 - The global receipt count lives in the `stats` singleton (`name: "global"`). Keep it in sync if you add deletion.
 - [`crons.ts`](../../convex/crons.ts) runs `scans.pruneOldEvents` hourly.
 - `stores.upsert` is internal: `npx convex run stores:upsert '{"name":"...","aliases":["..."]}'` or the dashboard. The table starts empty.

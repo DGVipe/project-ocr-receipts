@@ -1,7 +1,9 @@
 "use client";
 
-import { usePaginatedQuery, useQuery, type UsePaginatedQueryReturnType } from "convex/react";
-import { DatabaseIcon } from "lucide-react";
+import { useConvex, usePaginatedQuery, useQuery, type UsePaginatedQueryReturnType } from "convex/react";
+import { useState } from "react";
+import { DatabaseIcon, DownloadIcon, Loader2Icon } from "lucide-react";
+import { toast } from "sonner";
 
 import { api } from "@convex/_generated/api";
 import { LIST_PAGE_SIZE } from "@convex/limits";
@@ -28,6 +30,7 @@ import {
 import { formatAmount, formatDate, formatTimestamp } from "@/lib/format";
 import { PageControls, useDeferredDialog, usePages } from "@/components/page-controls";
 import { useI18n } from "@/lib/i18n";
+import { receiptsToXlsx } from "@/lib/export-xlsx";
 
 export function ReceiptsDialog() {
   const { t } = useI18n();
@@ -56,7 +59,9 @@ export function ReceiptsDialog() {
         )}
       </DialogTrigger>
       <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-3xl">
-        <DialogHeader>
+        {/* Sits left of the dialog's close (X) button */}
+        {summary && summary.totalReceipts > 0 && <ExportXlsButton />}
+        <DialogHeader className="pr-28 sm:pr-40">
           <DialogTitle>{t.dialogTitle}</DialogTitle>
           <DialogDescription>
             {t.dialogDescription}
@@ -65,7 +70,7 @@ export function ReceiptsDialog() {
           </DialogDescription>
         </DialogHeader>
         <ReceiptsTable {...data} />
-      </DialogContent>
+              </DialogContent>
     </Dialog>
   );
 }
@@ -124,5 +129,50 @@ function ReceiptsTable({
       </ScrollArea>
       <PageControls pages={pages} />
     </>
+  );
+}
+
+/** Fetches every receipt and downloads them as an Excel file. */
+function ExportXlsButton() {
+  const { t } = useI18n();
+  const convex = useConvex();
+  const [busy, setBusy] = useState(false);
+
+  async function download() {
+    setBusy(true);
+    try {
+      const rows = await convex.query(api.receipts.exportAll, {});
+      const blob = await receiptsToXlsx(rows, {
+        store: t.store,
+        date: t.date,
+        total: t.total,
+        currency: t.currency,
+        scanned: t.scanned,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `receipts-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error(t.exportFailed);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="absolute top-2 right-11"
+      onClick={download}
+      disabled={busy}
+      aria-label={t.exportXls}
+    >
+      {busy ? <Loader2Icon className="animate-spin" /> : <DownloadIcon />}
+      <span className="hidden sm:inline">{busy ? t.exporting : t.exportXls}</span>
+    </Button>
   );
 }

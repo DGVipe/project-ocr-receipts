@@ -24,6 +24,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Receipt Scanner",
   description: "Scan purchase receipts and extract the store, date and total with OCR.",
+  // The SVG carries its own prefers-color-scheme rule: black on light, white on dark.
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 /**
