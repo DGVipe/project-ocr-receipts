@@ -27,22 +27,7 @@ Pick a receipt photo. [Tesseract.js](https://github.com/naptha/tesseract.js) run
 
 ## How it works
 
-```
-Browser                                   Next.js (Vercel)              Convex
-───────                                   ────────────────              ──────
-photo
-  │ EXIF rotate, grayscale, ~3200px
-  ▼
-preprocess ×3 ──▶ Tesseract.js ──▶ parser
-                                    │ { store, date, total, currency }
-                                    ▼
-                                  POST /api/scan ──▶ same-origin check
-                                                     sanitize fields
-                                                     hash cookie + IP ──▶ scans.reserve   (rate limits)
-                                                                          scans.complete  (insert receipt)
-                                                                          scans.fail      (422 missing_fields)
-modals ◀──────────────────────── live queries ◀──────────────────────── receipts / stores
-```
+![Receipt photo goes through on-device OCR in the browser, the extracted fields are POSTed to /api/scan on Next.js, which calls Convex with the server secret, and the modals read receipts and stores back through live queries](assets/workflow.png)
 
 | Step | Where | What happens |
 | ---- | ----- | ------------ |
@@ -66,6 +51,8 @@ Convex write functions require `CONVEX_SERVER_SECRET`, so only the Next.js serve
 ## Project structure
 
 ```
+├── assets/
+│   └── workflow.png         # How it works diagram
 ├── convex/
 │   ├── schema.ts            # receipts, stores, scanEvents, stats tables
 │   ├── scans.ts             # reserve / complete / fail / getQuota / pruneOldEvents
