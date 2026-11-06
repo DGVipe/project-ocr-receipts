@@ -44,3 +44,6 @@ next-env.d.ts
 
 # claude code: .claude/ is committed; only personal settings stay local
 .claude/settings.local.json
+
+# Playwright MCP
+.playwright-mcp/
