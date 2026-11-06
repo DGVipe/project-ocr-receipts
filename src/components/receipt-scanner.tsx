@@ -66,25 +66,20 @@ function scanError(message: string) {
   activeError = toast.error(message, {
     duration: Infinity,
     closeButton: true,
-    icon: null,
     className: "whitespace-pre-line",
   });
   document.addEventListener("click", dismissScanError, { capture: true, once: true });
   stopListening = () => document.removeEventListener("click", dismissScanError, { capture: true });
 }
 
-const MISSING_MESSAGE = {
-  store: "missingStore",
-  date: "missingDate",
-  total: "missingTotal",
-} as const;
+const MISSING_FIELDS = ["store", "date", "total"] as const;
 
-/** One sentence per missing field, so the user knows exactly what wasn't found. */
+/** Short message naming only the fields that weren't found, e.g. "Error scanning. Missing store, date." */
 function missingMessage(t: Messages, missing: unknown): string {
-  const lines = (Array.isArray(missing) ? missing : [])
-    .filter((f): f is keyof typeof MISSING_MESSAGE => f in MISSING_MESSAGE)
-    .map((f) => t[MISSING_MESSAGE[f]]);
-  return lines.length ? [...lines, t.retryTip].join("\n") : t.missing_fields;
+  const names = (Array.isArray(missing) ? missing : [])
+    .filter((f): f is (typeof MISSING_FIELDS)[number] => MISSING_FIELDS.includes(f))
+    .map((f) => t[f].toLowerCase());
+  return names.length ? t.scanError + t.missingFields(names) : t.missing_fields;
 }
 
 function serverMessage(t: Messages, data: { code?: string; error?: string }): string | undefined {

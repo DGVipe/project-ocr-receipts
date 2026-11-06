@@ -1,6 +1,11 @@
 export const LOCALES = ["en", "es"] as const;
 export type Locale = (typeof LOCALES)[number];
 
+/** "a", "a and b", "a, b and c" (no comma before the last word). */
+function joinList(items: string[], and: string): string {
+  return items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} ${and} ${items.at(-1)}`;
+}
+
 const en = {
   appName: "Receipt Scanner",
   viewAll: "View all receipts",
@@ -43,6 +48,10 @@ const en = {
   dialogDescription: "Every receipt collected by all users, newest first.",
   storage: (a: number, b: number) => ` Storage: ${a} / ${b} receipts.`,
   noReceipts: "No receipts yet. Scan one to get started.",
+  exportXls: "Export Excel",
+  currency: "Currency",
+  exporting: "Exporting…",
+  exportFailed: "The export failed. Please try again.",
   scanned: "Scanned",
   unknown: "Unknown",
   // OCR engine errors
@@ -53,11 +62,8 @@ const en = {
   cross_origin: "Cross-origin requests are not allowed.",
   bad_body: "Expected a JSON body.",
   missing_fields: "Some receipt details are missing.",
-  missingStore:
-    "Error: the store is missing. Either the scanned store isn't in our list, or its name couldn't be read from the image.",
-  missingDate: "Error: the date couldn't be read from the image.",
-  missingTotal: "Error: the total couldn't be read from the image.",
-  retryTip: "Try a sharper, well-lit photo with the receipt filling the frame.",
+  scanError: "Error scanning.",
+  missingFields: (f: string[]) => ` Missing ${joinList(f, "and")}.`,
   save_failed: "Something went wrong while saving the receipt.",
   global_cap: "The receipt database is full. No new receipts can be stored.",
   user_cap: "You have reached the limit of stored receipts.",
@@ -110,6 +116,10 @@ const es: Dict = {
   dialogDescription: "Todas las boletas recopiladas de todos los usuarios, las más recientes primero.",
   storage: (a, b) => ` Almacenamiento: ${a} / ${b} boletas.`,
   noReceipts: "Aún no hay boletas. Escanea una para comenzar.",
+  exportXls: "Exportar Excel",
+  currency: "Moneda",
+  exporting: "Exportando…",
+  exportFailed: "La exportación falló. Inténtalo de nuevo.",
   scanned: "Escaneada",
   unknown: "Desconocida",
   ocrLoad: "No se pudo cargar el motor de OCR. Revisa tu conexión e inténtalo de nuevo.",
@@ -118,11 +128,8 @@ const es: Dict = {
   cross_origin: "No se permiten solicitudes de otros orígenes.",
   bad_body: "Se esperaba un cuerpo JSON.",
   missing_fields: "Faltan algunos datos de la boleta.",
-  missingStore:
-    "Error: falta la tienda. O la tienda escaneada no está en nuestra lista, o no se pudo leer su nombre en la imagen.",
-  missingDate: "Error: no se pudo leer la fecha en la imagen.",
-  missingTotal: "Error: no se pudo leer el total en la imagen.",
-  retryTip: "Prueba con una foto más nítida y bien iluminada, con la boleta llenando el encuadre.",
+  scanError: "Error al escanear.",
+  missingFields: (f) => ` Falta ${joinList(f, "y")}.`,
   save_failed: "Algo salió mal al guardar la boleta.",
   global_cap: "La base de datos de boletas está llena. No se pueden guardar más boletas.",
   user_cap: "Has alcanzado el límite de boletas guardadas.",
