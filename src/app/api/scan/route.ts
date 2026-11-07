@@ -27,11 +27,20 @@ function readResult(body: unknown, storeNames: Set<string>) {
   };
 }
 
+/** Host of the Origin header, or null when it is opaque ("null") or malformed. */
+function originHost(origin: string): string | null {
+  try {
+    return new URL(origin).host || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: Request) {
   // Only accept results from this site's own pages.
   const origin = request.headers.get("origin");
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  if (origin && host && new URL(origin).host !== host) {
+  if (origin && host && originHost(origin) !== host) {
     return error("Cross-origin requests are not allowed.", 403, { code: "cross_origin" });
   }
 
