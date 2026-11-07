@@ -1,5 +1,4 @@
-export const LOCALES = ["en", "es"] as const;
-export type Locale = (typeof LOCALES)[number];
+export type Locale = "en" | "es";
 
 /** "a", "a and b", "a, b and c" (no comma before the last word). */
 function joinList(items: string[], and: string): string {

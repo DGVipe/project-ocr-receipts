@@ -8,8 +8,7 @@ const CHANGE_EVENT = "locale-change";
 
 function savedLocale(): Locale | null {
   const fromCookie = document.cookie.match(new RegExp(`(?:^|; )${LOCALE_COOKIE}=([^;]*)`))?.[1];
-  // localStorage: where earlier versions kept the choice.
-  return parseLocale(fromCookie) ?? parseLocale(localStorage.getItem(LOCALE_COOKIE));
+  return parseLocale(fromCookie);
 }
 
 function detectLocale(): Locale {
@@ -21,11 +20,7 @@ function detectLocale(): Locale {
 
 function subscribe(cb: () => void) {
   window.addEventListener(CHANGE_EVENT, cb);
-  window.addEventListener("storage", cb);
-  return () => {
-    window.removeEventListener(CHANGE_EVENT, cb);
-    window.removeEventListener("storage", cb);
-  };
+  return () => window.removeEventListener(CHANGE_EVENT, cb);
 }
 
 type I18n = { locale: Locale; t: Messages; setLocale: (l: Locale) => void };
@@ -41,7 +36,7 @@ export function I18nProvider({
 }) {
   // The server (and first hydration pass) renders `initialLocale`, so the first
   // paint is already in the right language. The client check below only matters
-  // if it disagrees with the server (e.g. a language saved in localStorage).
+  // if it disagrees with the server (e.g. navigator.language vs Accept-Language).
   const locale = useSyncExternalStore(subscribe, detectLocale, () => initialLocale);
 
   const setLocale = useCallback((next: Locale) => {
