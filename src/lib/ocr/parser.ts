@@ -175,7 +175,6 @@ function normWords(s: string): string {
   return (fold(s).match(/[a-z0-9]+/g) ?? []).join(" ");
 }
 
-
 /** Python's `difflib.SequenceMatcher(None, a, b).ratio()`. */
 export function similarity(a: string, b: string): number {
   if (!a.length && !b.length) return 1;

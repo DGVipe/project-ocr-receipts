@@ -73,7 +73,7 @@ export function ReceiptsDialog() {
           </DialogDescription>
         </DialogHeader>
         <ReceiptsTable {...data} />
-              </DialogContent>
+      </DialogContent>
     </Dialog>
   );
 }

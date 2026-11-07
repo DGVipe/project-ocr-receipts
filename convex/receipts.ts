@@ -23,7 +23,7 @@ export const list = query({
   },
 });
 
-/** Public, unpaginated list of every stored receipt for the XML export (newest first). */
+/** Public, unpaginated list of every stored receipt for the Excel export (newest first). */
 export const exportAll = query({
   args: {},
   handler: async (ctx) => {
