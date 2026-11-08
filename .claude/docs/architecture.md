@@ -23,4 +23,4 @@
 - [`crons.ts`](../../convex/crons.ts) runs `scans.pruneOldEvents` hourly.
 - `stores.upsert` is internal: `npx convex run stores:upsert '{"name":"...","aliases":["..."]}'` or the dashboard. The table starts empty.
 - Import Convex code from the frontend through `@convex/*` (maps to `./convex/*`).
-- Modals page over `usePaginatedQuery` through the shared `usePages` hook ([`page-controls.tsx`](../../src/components/page-controls.tsx)).
+- Modals page over `usePaginatedQuery` through the shared `usePages` hook ([`page-controls.tsx`](../../src/components/page-controls.tsx)). Convex's `.paginate()` returns `isDone: false` when a page comes back exactly full, so `CanLoadMore` does not prove a next page exists. `usePages` keeps one page loaded ahead and shows Next only for rows that have arrived. Pass `initialNumItems: initialNumItems(LIST_PAGE_SIZE)` so the modal opens with that lookahead already loaded.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,19 @@ import { useI18n } from "@/lib/i18n";
 type Status = "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
 
 /**
- * Page-by-page view over a Convex paginated query: fetches the next batch
- * only when the user moves past what has been loaded.
+ * Rows to request up front: the first page plus one page of lookahead, so the
+ * modal opens already knowing whether there is a second page.
+ */
+export function initialNumItems(size: number) {
+  return 2 * size;
+}
+
+/**
+ * Page-by-page view over a Convex paginated query. Convex reports more data
+ * (`CanLoadMore`) whenever the last batch came back full, even if nothing
+ * follows it, so status alone can't decide whether Next is shown. Instead, the
+ * hook keeps one page loaded past the current one and offers Next only for
+ * rows that have actually arrived. Pair it with `initialNumItems(size)`.
  */
 export function usePages<T>(
   results: T[],
@@ -19,26 +30,21 @@ export function usePages<T>(
   size: number,
 ) {
   const [requested, setRequested] = useState(0);
-  const lastLoaded = Math.max(0, Math.ceil(results.length / size) - 1);
-  // Keep showing the current page until the requested one has arrived, so the
-  // modal doesn't flash empty (and resize) while the next batch loads.
-  const arrived = requested * size < results.length;
-  const page = arrived
-    ? requested
-    : Math.max(0, Math.min(status === "Exhausted" ? requested : requested - 1, lastLoaded));
-  const loading = status === "LoadingMore";
-  const hasNext = (page + 1) * size < results.length || status === "CanLoadMore" || loading;
+  const lastPage = Math.max(0, Math.ceil(results.length / size) - 1);
+  const page = Math.min(requested, lastPage);
+  const hasNext = (page + 1) * size < results.length;
+
+  const needsLookahead = status === "CanLoadMore" && results.length < (page + 2) * size;
+  useEffect(() => {
+    if (needsLookahead) loadMore(size);
+  }, [needsLookahead, loadMore, size]);
 
   return {
     page,
     hasNext,
-    loading,
     rows: results.slice(page * size, (page + 1) * size),
     prev: () => setRequested(Math.max(0, page - 1)),
-    next: () => {
-      if ((page + 2) * size > results.length && status === "CanLoadMore") loadMore(size);
-      setRequested(page + 1);
-    },
+    next: () => setRequested(page + 1),
   };
 }
 
@@ -55,7 +61,7 @@ export function PageControls({ pages }: { pages: ReturnType<typeof usePages> }) 
         variant="outline"
         size="sm"
         onClick={pages.next}
-        disabled={!pages.hasNext || pages.loading}
+        disabled={!pages.hasNext}
       >
         {t.next} <ChevronRightIcon />
       </Button>

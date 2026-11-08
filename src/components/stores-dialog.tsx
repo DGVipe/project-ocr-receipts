@@ -6,7 +6,12 @@ import { StoreIcon } from "lucide-react";
 import { api } from "@convex/_generated/api";
 import { LIST_PAGE_SIZE } from "@convex/limits";
 import { TapRevealCell } from "@/components/tap-reveal-cell";
-import { PageControls, useDeferredDialog, usePages } from "@/components/page-controls";
+import {
+  initialNumItems,
+  PageControls,
+  useDeferredDialog,
+  usePages,
+} from "@/components/page-controls";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,7 +36,7 @@ export function StoresDialog() {
   const data = usePaginatedQuery(
     api.stores.listPage,
     dialog.active ? {} : "skip",
-    { initialNumItems: LIST_PAGE_SIZE },
+    { initialNumItems: initialNumItems(LIST_PAGE_SIZE) },
   );
   const ready = dialog.active && data.status !== "LoadingFirstPage";
 

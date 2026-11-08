@@ -29,7 +29,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatAmount, formatDate, formatTimestamp } from "@/lib/format";
-import { PageControls, useDeferredDialog, usePages } from "@/components/page-controls";
+import {
+  initialNumItems,
+  PageControls,
+  useDeferredDialog,
+  usePages,
+} from "@/components/page-controls";
 import { useI18n } from "@/lib/i18n";
 import { receiptsToXlsx } from "@/lib/export-xlsx";
 
@@ -41,7 +46,7 @@ export function ReceiptsDialog() {
   const data = usePaginatedQuery(
     api.receipts.list,
     dialog.active ? {} : "skip",
-    { initialNumItems: LIST_PAGE_SIZE },
+    { initialNumItems: initialNumItems(LIST_PAGE_SIZE) },
   );
   const ready = dialog.active && data.status !== "LoadingFirstPage";
 
