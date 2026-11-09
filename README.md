@@ -23,7 +23,9 @@ A webapp that scans photos with the use of local OCR. English (USD) and Spanish 
 
 ## How it works
 
-![Receipt photo goes through on-device OCR in the browser, the extracted fields are POSTed to /api/scan on Next.js, which calls Convex with the server secret, and the modals read receipts and stores back through live queries.](assets/workflow.png)
+![Workflow](assets/workflow.png)
+
+Receipt photo goes through on-device OCR in the browser, the extracted fields are POSTed to /api/scan on Next.js, which calls Convex with the server secret, and the modals read receipts and stores back through live queries.
 
 | Step | Where | What happens |
 | ---- | ----- | ------------ |
